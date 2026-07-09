@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Le Poste : VA courriel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Albert+Sans:wght@400;500;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FBFAFE; --card:#FFFFFF; --ink:#221A3A; --muted:#6F678C;
+  --violet:#6C4CE6; --violet-ink:#4A31B8; --wash:#F0ECFB; --line:#E5DFF5;
+  --ok:#17754C; --alert:#B23B22;
+  --disp:"Bricolage Grotesque",sans-serif; --body:"Albert Sans",sans-serif; --mono:"Spline Sans Mono",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+.wrap{max-width:760px;margin:0 auto;padding:20px 16px 80px}
+header h1{font-family:var(--disp);font-weight:800;font-size:clamp(26px,5vw,34px);letter-spacing:-0.02em}
+header h1 span{color:var(--violet)}
+.pulse{display:flex;flex-wrap:wrap;gap:8px 18px;margin:10px 0 4px;font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+.pulse b{color:var(--ink);font-weight:500}
+.pulse .dot{color:var(--violet)}
+.mode-brouillon b{color:var(--violet-ink)} .mode-auto b{color:var(--ok)}
+.toolbar{display:flex;gap:8px;margin:16px 0 6px;flex-wrap:wrap}
+button{font-family:var(--body);font-weight:600;font-size:14px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:9px 14px;cursor:pointer}
+button:hover{border-color:var(--violet)}
+button:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+button.primaire{background:var(--violet);border-color:var(--violet);color:#fff}
+button.primaire:hover{background:var(--violet-ink)}
+button:disabled{opacity:.5;cursor:default}
+nav{display:flex;gap:6px;margin:14px 0 18px;flex-wrap:wrap}
+nav button{border-radius:999px;padding:7px 15px;font-family:var(--disp);font-weight:600}
+nav button.actif{background:var(--ink);border-color:var(--ink);color:#fff}
+.carte{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px;border-left:4px solid var(--violet);position:relative}
+.carte .meta{font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:6px;word-break:break-all}
+.carte .marque-tag{display:inline-block;font-family:var(--disp);font-weight:600;font-size:12px;background:var(--wash);color:var(--violet-ink);border-radius:6px;padding:2px 8px;margin-right:8px}
+.carte h3{font-size:15px;font-weight:600;margin-bottom:4px}
+.carte .resume{color:var(--muted);margin-bottom:10px}
+textarea{width:100%;font-family:var(--body);font-size:14px;border:1.5px solid var(--line);border-radius:10px;padding:9px 11px;resize:vertical;min-height:44px;background:var(--paper)}
+textarea:focus,input:focus,select:focus{outline:2px solid var(--violet);outline-offset:1px;border-color:var(--violet)}
+.ligne-actions{display:flex;align-items:center;gap:12px;margin-top:9px;flex-wrap:wrap}
+label.case{display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--muted);cursor:pointer}
+input[type=checkbox]{width:16px;height:16px;accent-color:var(--violet)}
+input[type=text],select{font-family:var(--body);font-size:14px;border:1.5px solid var(--line);border-radius:10px;padding:9px 11px;background:var(--card)}
+.vide{color:var(--muted);text-align:center;padding:36px 10px;border:1.5px dashed var(--line);border-radius:14px}
+.vide b{font-family:var(--disp);color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-family:var(--disp);font-weight:600;text-align:left;padding:8px 6px;border-bottom:2px solid var(--line);font-size:12.5px}
+td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+td.mono{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.sup{color:var(--alert);background:none;border:none;font-size:13px;font-weight:600;cursor:pointer;padding:2px 4px}
+.form-ajout{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 16px;align-items:flex-start}
+.form-ajout input[type=text]{flex:1;min-width:160px}
+.panneau{background:var(--wash);border-radius:14px;padding:16px;margin-bottom:16px}
+.panneau h2{font-family:var(--disp);font-size:16px;margin-bottom:10px}
+.panneau .champ{margin-bottom:10px}
+.panneau label{display:block;font-size:13px;font-weight:600;margin-bottom:4px}
+.panneau input{width:100%}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;border-radius:10px;padding:10px 18px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s}
+.toast.visible{opacity:1}
+.chargement{color:var(--muted);font-family:var(--mono);font-size:13px;padding:20px 0}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Le Poste<span>.</span></h1>
+    <div class="pulse" id="pulse">
+      <span class="dot">●</span>
+      <span id="p-attente"><b>–</b> en attente</span>
+      <span id="p-cout"><b>–</b> ce mois-ci</span>
+      <span id="p-mode"><b>–</b></span>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <button class="primaire" id="btn-run">Lancer un run</button>
+    <button id="btn-refresh">Actualiser</button>
+    <button id="btn-cfg-conn">Connexion</button>
+  </div>
+
+  <div class="panneau" id="panneau-conn" style="display:none">
+    <h2>Connexion au moteur</h2>
+    <div class="champ"><label for="in-url">URL de l'application Web (Apps Script)</label><input type="text" id="in-url" placeholder="https://script.google.com/macros/s/.../exec"></div>
+    <div class="champ"><label for="in-token">Jeton du dashboard</label><input type="text" id="in-token" placeholder="ton DASHBOARD_TOKEN"></div>
+    <button class="primaire" onclick="sauverConn()">Enregistrer et connecter</button>
+  </div>
+
+  <nav id="tabs">
+    <button data-tab="attente" class="actif">À répondre</button>
+    <button data-tab="kb">Base de connaissances</button>
+    <button data-tab="regles">Règles</button>
+    <button data-tab="config">Réglages</button>
+    <button data-tab="log">Journal</button>
+  </nav>
+
+  <main id="contenu"><div class="chargement">Connexion…</div></main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+let etat = null;
+let tabActif = 'attente';
+const $ = s => document.querySelector(s);
+
+function conn(){ return { url: localStorage.getItem('va_url')||'', token: localStorage.getItem('va_token')||'' }; }
+function sauverConn(){
+  localStorage.setItem('va_url', $('#in-url').value.trim());
+  localStorage.setItem('va_token', $('#in-token').value.trim());
+  $('#panneau-conn').style.display='none';
+  charger();
+}
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('visible'); setTimeout(()=>t.classList.remove('visible'),2400); }
+
+async function api(body){
+  const c = conn();
+  if(!c.url || !c.token){ $('#panneau-conn').style.display='block'; throw new Error('Connexion à configurer'); }
+  const r = await fetch(c.url, { method:'POST', body: JSON.stringify(Object.assign({token:c.token}, body)) });
+  const j = await r.json();
+  if(!j.ok) throw new Error(j.erreur || 'Erreur inconnue');
+  return j;
+}
+
+async function charger(){
+  $('#contenu').innerHTML = '<div class="chargement">Chargement…</div>';
+  try{
+    etat = await api({action:'getAll'});
+    $('#p-attente').innerHTML = '<b>'+etat.attente.length+'</b> en attente';
+    $('#p-cout').innerHTML = '<b>'+etat.coutMois.toFixed(2)+' $ US</b> ce mois-ci';
+    const mode = $('#p-mode');
+    mode.innerHTML = etat.autoSend ? '<b>envoi automatique</b>' : '<b>mode brouillon</b>';
+    mode.className = etat.autoSend ? 'mode-auto' : 'mode-brouillon';
+    rendre();
+  }catch(e){
+    $('#contenu').innerHTML = '<div class="vide"><b>Pas de connexion.</b><br>'+e.message+'</div>';
+  }
+}
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function rendre(){
+  const m = $('#contenu');
+  if(!etat) return;
+
+  if(tabActif==='attente'){
+    if(!etat.attente.length){ m.innerHTML='<div class="vide"><b>File vide.</b><br>Rien à répondre pour le moment.</div>'; return; }
+    m.innerHTML = etat.attente.map(a => `
+      <div class="carte">
+        <div class="meta"><span class="marque-tag">${esc(a.marque)}</span>${esc(a.de)} · ${esc(a.date)}</div>
+        <h3>${esc(a.sujet)}</h3>
+        <div class="resume">${esc(a.resume)}</div>
+        <textarea id="rep-${a.ligne}" placeholder="Ta réponse en une ligne, le VA écrit le courriel complet">${esc(a.reponse)}</textarea>
+        <div class="ligne-actions">
+          <label class="case"><input type="checkbox" id="kb-${a.ligne}"> Garder dans la base (réponse réutilisable)</label>
+          <button class="primaire" onclick="envoyerReponse(${a.ligne})">Enregistrer la réponse</button>
+        </div>
+      </div>`).join('');
+  }
+
+  if(tabActif==='kb'){
+    m.innerHTML = `
+      <div class="form-ajout">
+        <select id="kb-marque">${etat.marques.map(x=>`<option>${esc(x)}</option>`).join('')}</select>
+        <input type="text" id="kb-q" placeholder="Question type">
+        <input type="text" id="kb-r" placeholder="Réponse approuvée">
+        <button class="primaire" onclick="ajouterKB()">Ajouter</button>
+      </div>
+      <table><tr><th>Marque</th><th>Question</th><th>Réponse</th><th></th></tr>
+      ${etat.kb.map(k=>`<tr><td class="mono">${esc(k.marque)}</td><td>${esc(k.q)}</td><td>${esc(k.r)}</td><td><button class="sup" onclick="supprimer('delKB',${k.ligne})">retirer</button></td></tr>`).join('')}
+      </table>`;
+  }
+
+  if(tabActif==='regles'){
+    m.innerHTML = `
+      <div class="form-ajout">
+        <select id="rg-marque"><option>GLOBAL</option>${etat.marques.map(x=>`<option>${esc(x)}</option>`).join('')}</select>
+        <input type="text" id="rg-texte" placeholder="Nouvelle règle en français normal">
+        <button class="primaire" onclick="ajouterRegle()">Ajouter</button>
+      </div>
+      <table><tr><th>Portée</th><th>Règle</th><th></th></tr>
+      ${etat.regles.map(r=>`<tr><td class="mono">${esc(r.marque)}</td><td>${esc(r.regle)}</td><td><button class="sup" onclick="supprimer('delRegle',${r.ligne})">retirer</button></td></tr>`).join('')}
+      </table>`;
+  }
+
+  if(tabActif==='config'){
+    m.innerHTML = etat.config.map(c=>`
+      <div class="carte" style="border-left-color:var(--line)">
+        <h3>${esc(c.param)}</h3>
+        <div class="ligne-actions">
+          <input type="text" id="cfg-${esc(c.param)}" value="${esc(c.valeur)}" style="flex:1;min-width:160px">
+          <button onclick="sauverConfig('${esc(c.param)}')">Enregistrer</button>
+        </div>
+      </div>`).join('') +
+      '<p style="color:var(--muted);font-size:13px">HEURES_RUN reprogramme les runs automatiquement. AUTO_SEND_DATE au format 2026-07-30.</p>';
+  }
+
+  if(tabActif==='log'){
+    if(!etat.log.length){ m.innerHTML='<div class="vide"><b>Journal vide.</b></div>'; return; }
+    m.innerHTML = `<table><tr><th>Date</th><th>Marque</th><th>Catégorie</th><th>Action</th><th>Coût</th></tr>
+      ${etat.log.map(l=>`<tr><td class="mono">${esc(l.date)}</td><td>${esc(l.marque)}</td><td>${esc(l.cat)}</td><td>${esc(l.action)}</td><td class="mono">${l.cout?l.cout.toFixed(4)+' $':''}</td></tr>`).join('')}
+      </table>`;
+  }
+}
+
+async function envoyerReponse(ligne){
+  const rep = $('#rep-'+ligne).value.trim();
+  if(!rep){ toast('Écris une réponse d\u2019abord'); return; }
+  try{
+    await api({action:'answer', ligne:ligne, reponse:rep, kb: $('#kb-'+ligne).checked});
+    toast('Réponse enregistrée, traitée au prochain run');
+    charger();
+  }catch(e){ toast('Erreur : '+e.message); }
+}
+async function ajouterKB(){
+  const q=$('#kb-q').value.trim(), r=$('#kb-r').value.trim();
+  if(!q||!r){ toast('Question et réponse requises'); return; }
+  try{ await api({action:'addKB', marque:$('#kb-marque').value, q:q, r:r}); toast('Ajouté à la base'); charger(); }
+  catch(e){ toast('Erreur : '+e.message); }
+}
+async function ajouterRegle(){
+  const t=$('#rg-texte').value.trim();
+  if(!t){ toast('Écris la règle'); return; }
+  try{ await api({action:'addRegle', marque:$('#rg-marque').value, regle:t}); toast('Règle ajoutée'); charger(); }
+  catch(e){ toast('Erreur : '+e.message); }
+}
+async function supprimer(action, ligne){
+  if(!confirm('Retirer cette ligne?')) return;
+  try{ await api({action:action, ligne:ligne}); toast('Retiré'); charger(); }
+  catch(e){ toast('Erreur : '+e.message); }
+}
+async function sauverConfig(param){
+  try{ await api({action:'setConfig', param:param, valeur:$('#cfg-'+param).value.trim()}); toast(param+' enregistré'); charger(); }
+  catch(e){ toast('Erreur : '+e.message); }
+}
+
+$('#btn-run').addEventListener('click', async ()=>{
+  const b=$('#btn-run'); b.disabled=true; b.textContent='Run en cours…';
+  try{ await api({action:'runNow'}); toast('Run terminé'); charger(); }
+  catch(e){ toast('Erreur : '+e.message); }
+  b.disabled=false; b.textContent='Lancer un run';
+});
+$('#btn-refresh').addEventListener('click', charger);
+$('#btn-cfg-conn').addEventListener('click', ()=>{
+  const p=$('#panneau-conn'); p.style.display = p.style.display==='none'?'block':'none';
+  $('#in-url').value=conn().url; $('#in-token').value=conn().token;
+});
+$('#tabs').addEventListener('click', e=>{
+  if(e.target.dataset.tab){
+    tabActif=e.target.dataset.tab;
+    document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('actif', b===e.target));
+    rendre();
+  }
+});
+charger();
+</script>
+</body>
+</html>
