@@ -155,6 +155,7 @@ function rendre(){
         <div class="ligne-actions">
           <label class="case"><input type="checkbox" id="kb-${a.ligne}"> Garder dans la base (réponse réutilisable)</label>
           <button class="primaire" onclick="envoyerReponse(${a.ligne})">Enregistrer la réponse</button>
+          <button class="sup" onclick="retirerLigne(${a.ligne})">Ne pas répondre</button>
         </div>
       </div>`).join('');
   }
@@ -210,6 +211,14 @@ async function envoyerReponse(ligne){
   try{
     await api({action:'answer', ligne:ligne, reponse:rep, kb: $('#kb-'+ligne).checked});
     toast('Réponse enregistrée, traitée au prochain run');
+    charger();
+  }catch(e){ toast('Erreur : '+e.message); }
+}
+async function retirerLigne(ligne){
+  if(!confirm('Ce courriel ne recevra aucune réponse. Continuer?')) return;
+  try{
+    await api({action:'discard', ligne:ligne});
+    toast('Retiré, aucune réponse envoyée');
     charger();
   }catch(e){ toast('Erreur : '+e.message); }
 }
