@@ -35,6 +35,11 @@ nav button.actif{background:var(--ink);border-color:var(--ink);color:#fff}
 .carte{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px;border-left:4px solid var(--violet);position:relative}
 .carte .meta{font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:6px;word-break:break-all}
 .carte .marque-tag{display:inline-block;font-family:var(--disp);font-weight:600;font-size:12px;background:var(--wash);color:var(--violet-ink);border-radius:6px;padding:2px 8px;margin-right:8px}
+.carte.risque-haut{border-left-color:var(--alert)}
+.risque-tag{display:inline-block;font-family:var(--disp);font-weight:700;font-size:11px;border-radius:6px;padding:2px 9px;margin-left:6px;text-transform:uppercase;letter-spacing:.03em}
+.risque-tag.haut{background:#FBE4DC;color:var(--alert)}
+.risque-tag.moyen{background:#FCEFD8;color:#8A5A15}
+.risque-tag.bas{background:var(--wash);color:var(--violet-ink)}
 .carte h3{font-size:15px;font-weight:600;margin-bottom:4px}
 .carte .resume{color:var(--muted);margin-bottom:10px}
 textarea{width:100%;font-family:var(--body);font-size:14px;border:1.5px solid var(--line);border-radius:10px;padding:9px 11px;resize:vertical;min-height:44px;background:var(--paper)}
@@ -70,6 +75,7 @@ td.mono{font-family:var(--mono);font-size:12px;color:var(--muted)}
     <div class="pulse" id="pulse">
       <span class="dot">●</span>
       <span id="p-attente"><b>–</b> en attente</span>
+      <span id="p-remb"><b>–</b> remboursements</span>
       <span id="p-cout"><b>–</b> ce mois-ci</span>
       <span id="p-mode"><b>–</b></span>
     </div>
@@ -90,6 +96,7 @@ td.mono{font-family:var(--mono);font-size:12px;color:var(--muted)}
 
   <nav id="tabs">
     <button data-tab="attente" class="actif">À répondre</button>
+    <button data-tab="remboursements">Remboursements</button>
     <button data-tab="kb">Base de connaissances</button>
     <button data-tab="regles">Règles</button>
     <button data-tab="config">Réglages</button>
@@ -128,6 +135,8 @@ async function charger(){
   try{
     etat = await api({action:'getAll'});
     $('#p-attente').innerHTML = '<b>'+etat.attente.length+'</b> en attente';
+    const nbHaut = etat.remboursements.filter(r=>r.risque==='haut').length;
+    $('#p-remb').innerHTML = '<b>'+etat.remboursements.length+'</b> remboursements' + (nbHaut ? ' <span style="color:var(--alert)">('+nbHaut+' à risque élevé)</span>' : '');
     $('#p-cout').innerHTML = '<b>'+etat.coutMois.toFixed(2)+' $ US</b> ce mois-ci';
     const mode = $('#p-mode');
     mode.innerHTML = etat.autoSend ? '<b>envoi automatique</b>' : '<b>mode brouillon</b>';
@@ -156,6 +165,23 @@ function rendre(){
           <label class="case"><input type="checkbox" id="kb-${a.ligne}"> Garder dans la base (réponse réutilisable)</label>
           <button class="primaire" onclick="envoyerReponse(${a.ligne})">Enregistrer la réponse</button>
           <button class="sup" onclick="retirerLigne(${a.ligne})">Ne pas répondre</button>
+        </div>
+      </div>`).join('');
+  }
+
+  if(tabActif==='remboursements'){
+    if(!etat.remboursements.length){ m.innerHTML='<div class="vide"><b>Aucun remboursement en attente.</b><br>Rien à trier pour le moment.</div>'; return; }
+    m.innerHTML = etat.remboursements.map(r => `
+      <div class="carte risque-${esc(r.risque)}">
+        <div class="meta">
+          <span class="marque-tag">${esc(r.marque)}</span>${esc(r.de)} · ${esc(r.date)}
+          <span class="risque-tag ${esc(r.risque)}">${r.risque==='haut'?'Risque élevé':r.risque==='bas'?'Risque faible':'Risque moyen'}</span>
+        </div>
+        <h3>${esc(r.sujet)}</h3>
+        <div class="resume">${esc(r.resume)}</div>
+        <div class="ligne-actions">
+          <span class="meta" style="margin:0">Statut : ${esc(r.statut)}</span>
+          <button class="sup" onclick="resoudreRemboursement(${r.ligne})">Marquer comme réglé</button>
         </div>
       </div>`).join('');
   }
@@ -219,6 +245,13 @@ async function retirerLigne(ligne){
   try{
     await api({action:'discard', ligne:ligne});
     toast('Retiré, aucune réponse envoyée');
+    charger();
+  }catch(e){ toast('Erreur : '+e.message); }
+}
+async function resoudreRemboursement(ligne){
+  try{
+    await api({action:'resolveRefund', ligne:ligne});
+    toast('Marqué comme réglé');
     charger();
   }catch(e){ toast('Erreur : '+e.message); }
 }
