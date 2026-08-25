@@ -14,7 +14,7 @@
   --disp:"Bricolage Grotesque",sans-serif; --body:"Albert Sans",sans-serif; --mono:"Spline Sans Mono",monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+body{background:radial-gradient(ellipse 140% 90% at 50% -10%, #C1503C 0%, #8A3540 22%, #5B1E42 45%, #2D142C 75%) fixed;color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;min-height:100vh}
 .wrap{max-width:760px;margin:0 auto;padding:20px 16px 80px}
 header h1{font-family:var(--disp);font-weight:800;font-size:clamp(26px,5vw,34px);letter-spacing:-0.02em}
 header h1 span{color:var(--violet)}
@@ -76,13 +76,38 @@ td.mono{font-family:var(--mono);font-size:12px;color:var(--muted)}
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--violet-ink);color:#fff;border-radius:10px;padding:10px 18px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s}
 .toast.visible{opacity:1}
 .chargement{color:var(--muted);font-family:var(--mono);font-size:13px;padding:20px 0}
+.layout{display:flex;min-height:100vh}
+.sidebar{width:220px;flex-shrink:0;padding:24px 14px;display:flex;flex-direction:column;gap:4px}
+.sidebar .logo{font-family:var(--disp);font-weight:800;font-size:22px;letter-spacing:-0.02em;padding:0 10px 20px}
+.sidebar .logo span{color:var(--violet-ink)}
+.sidebar button{display:flex;align-items:center;gap:10px;justify-content:flex-start;text-align:left;background:none;border:none;color:var(--muted);font-family:var(--disp);font-weight:600;font-size:14.5px;padding:11px 12px;border-radius:10px;cursor:pointer;width:100%}
+.sidebar button:hover{background:rgba(255,255,255,.06);color:var(--ink)}
+.sidebar button.actif{background:var(--violet-ink);color:#fff}
+.sidebar button .ic{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+.content{flex:1;min-width:0;padding:24px 24px 80px;max-width:820px}
+@media (max-width:760px){
+  .layout{flex-direction:column}
+  .sidebar{width:100%;flex-direction:row;overflow-x:auto;padding:12px 10px;gap:6px}
+  .sidebar .logo{display:none}
+  .sidebar button{width:auto;white-space:nowrap;padding:9px 14px}
+  .content{padding:16px 14px 80px}
+}
 @media (prefers-reduced-motion: reduce){*{transition:none !important}}
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="layout">
+  <nav class="sidebar" id="tabs">
+    <div class="logo">Le Poste<span>.</span></div>
+    <button data-tab="attente" class="actif"><span class="ic">✉</span>À répondre</button>
+    <button data-tab="remboursements"><span class="ic">⚠</span>Remboursements</button>
+    <button data-tab="kb"><span class="ic">◆</span>Base de connaissances</button>
+    <button data-tab="regles"><span class="ic">≡</span>Règles</button>
+    <button data-tab="config"><span class="ic">⚙</span>Réglages</button>
+    <button data-tab="log"><span class="ic">▤</span>Journal</button>
+  </nav>
+  <div class="content">
   <header>
-    <h1>Le Poste<span>.</span></h1>
     <div class="pulse" id="pulse">
       <span class="dot">●</span>
       <span id="p-attente"><b>–</b> en attente</span>
@@ -105,16 +130,8 @@ td.mono{font-family:var(--mono);font-size:12px;color:var(--muted)}
     <button class="primaire" onclick="sauverConn()">Enregistrer et connecter</button>
   </div>
 
-  <nav id="tabs">
-    <button data-tab="attente" class="actif">À répondre</button>
-    <button data-tab="remboursements">Remboursements</button>
-    <button data-tab="kb">Base de connaissances</button>
-    <button data-tab="regles">Règles</button>
-    <button data-tab="config">Réglages</button>
-    <button data-tab="log">Journal</button>
-  </nav>
-
   <main id="contenu"><div class="chargement">Connexion…</div></main>
+  </div>
 </div>
 <div class="toast" id="toast"></div>
 
