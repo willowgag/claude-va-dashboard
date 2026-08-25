@@ -8,9 +8,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Albert+Sans:wght@400;500;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --paper:#FBFAFE; --card:#FFFFFF; --ink:#221A3A; --muted:#6F678C;
-  --violet:#6C4CE6; --violet-ink:#4A31B8; --wash:#F0ECFB; --line:#E5DFF5;
-  --ok:#17754C; --alert:#B23B22;
+  --paper:#2D142C; --card:#3A1B38; --ink:#F5E9EE; --muted:#C79AB0;
+  --violet:#801336; --violet-ink:#C72C41; --wash:#510A32; --line:#5B2650;
+  --ok:#2E9E6B; --alert:#EE4540;
   --disp:"Bricolage Grotesque",sans-serif; --body:"Albert Sans",sans-serif; --mono:"Spline Sans Mono",monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -31,18 +31,29 @@ button.primaire:hover{background:var(--violet-ink)}
 button:disabled{opacity:.5;cursor:default}
 nav{display:flex;gap:6px;margin:14px 0 18px;flex-wrap:wrap}
 nav button{border-radius:999px;padding:7px 15px;font-family:var(--disp);font-weight:600}
-nav button.actif{background:var(--ink);border-color:var(--ink);color:#fff}
+nav button.actif{background:var(--violet-ink);border-color:var(--violet-ink);color:#fff}
 .carte{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px;border-left:4px solid var(--violet);position:relative}
 .carte .meta{font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:6px;word-break:break-all}
 .carte .marque-tag{display:inline-block;font-family:var(--disp);font-weight:600;font-size:12px;background:var(--wash);color:var(--violet-ink);border-radius:6px;padding:2px 8px;margin-right:8px}
 .carte.risque-haut{border-left-color:var(--alert)}
 .risque-tag{display:inline-block;font-family:var(--disp);font-weight:700;font-size:11px;border-radius:6px;padding:2px 9px;margin-left:6px;text-transform:uppercase;letter-spacing:.03em}
-.risque-tag.haut{background:#FBE4DC;color:var(--alert)}
-.risque-tag.moyen{background:#FCEFD8;color:#8A5A15}
+.risque-tag.haut{background:#5A1418;color:#FF8A80}
+.risque-tag.moyen{background:#5B3A12;color:#FFC680}
 .risque-tag.bas{background:var(--wash);color:var(--violet-ink)}
 .carte h3{font-size:15px;font-weight:600;margin-bottom:4px}
 .carte .resume{color:var(--muted);margin-bottom:10px}
 textarea{width:100%;font-family:var(--body);font-size:14px;border:1.5px solid var(--line);border-radius:10px;padding:9px 11px;resize:vertical;min-height:44px;background:var(--paper)}
+.voir-conv{background:none;border:none;color:var(--violet-ink);font-family:var(--disp);font-weight:600;font-size:13px;padding:0;margin-bottom:8px;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.conversation{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;padding:10px;background:var(--paper);border-radius:10px;border:1px solid var(--line)}
+.msg{max-width:88%;padding:8px 12px;border-radius:10px;font-size:13.5px;line-height:1.4;white-space:pre-wrap}
+.msg .msg-meta{font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:3px}
+.msg.client{background:var(--card);border:1px solid var(--line);align-self:flex-start}
+.msg.nous{background:var(--wash);align-self:flex-end;color:var(--violet-ink)}
+.conv-chargement{font-family:var(--mono);font-size:12px;color:var(--muted);padding:6px 0}
+.suggestion-zone:empty{display:none}
+.suggestion-box{background:var(--wash);border:1px solid var(--violet-ink);border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:13.5px}
+.suggestion-box .sugg-label{font-family:var(--disp);font-weight:700;font-size:11px;color:var(--violet-ink);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px}
+.suggestion-box .sugg-actions{margin-top:8px;display:flex;gap:8px}
 textarea:focus,input:focus,select:focus{outline:2px solid var(--violet);outline-offset:1px;border-color:var(--violet)}
 .ligne-actions{display:flex;align-items:center;gap:12px;margin-top:9px;flex-wrap:wrap}
 label.case{display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--muted);cursor:pointer}
@@ -62,7 +73,7 @@ td.mono{font-family:var(--mono);font-size:12px;color:var(--muted)}
 .panneau .champ{margin-bottom:10px}
 .panneau label{display:block;font-size:13px;font-weight:600;margin-bottom:4px}
 .panneau input{width:100%}
-.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;border-radius:10px;padding:10px 18px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--violet-ink);color:#fff;border-radius:10px;padding:10px 18px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s}
 .toast.visible{opacity:1}
 .chargement{color:var(--muted);font-family:var(--mono);font-size:13px;padding:20px 0}
 @media (prefers-reduced-motion: reduce){*{transition:none !important}}
@@ -160,7 +171,11 @@ function rendre(){
         <div class="meta"><span class="marque-tag">${esc(a.marque)}</span>${esc(a.de)} · ${esc(a.date)}</div>
         <h3>${esc(a.sujet)}</h3>
         <div class="resume">${esc(a.resume)}</div>
+        <button class="voir-conv" onclick="toggleConversation(${a.ligne})" id="btn-conv-${a.ligne}">Voir la conversation</button>
+        <div class="conversation" id="conv-${a.ligne}" style="display:none"></div>
+        <div class="suggestion-zone" id="sugg-${a.ligne}"></div>
         <textarea id="rep-${a.ligne}" placeholder="Ta réponse en une ligne, le VA écrit le courriel complet">${esc(a.reponse)}</textarea>
+        <button class="voir-conv" onclick="suggererReponse(${a.ligne})" id="btn-sugg-${a.ligne}">Suggérer une réponse</button>
         <div class="ligne-actions">
           <label class="case"><input type="checkbox" id="kb-${a.ligne}"> Garder dans la base (réponse réutilisable)</label>
           <button class="primaire" onclick="envoyerReponse(${a.ligne})">Enregistrer la réponse</button>
@@ -179,6 +194,8 @@ function rendre(){
         </div>
         <h3>${esc(r.sujet)}</h3>
         <div class="resume">${esc(r.resume)}</div>
+        <button class="voir-conv" onclick="toggleConversation(${r.ligne})" id="btn-conv-${r.ligne}">Voir la conversation</button>
+        <div class="conversation" id="conv-${r.ligne}" style="display:none"></div>
         <div class="ligne-actions">
           <span class="meta" style="margin:0">Statut : ${esc(r.statut)}</span>
           <button class="sup" onclick="resoudreRemboursement(${r.ligne})">Marquer comme réglé</button>
@@ -247,6 +264,57 @@ async function retirerLigne(ligne){
     toast('Retiré, aucune réponse envoyée');
     charger();
   }catch(e){ toast('Erreur : '+e.message); }
+}
+const cacheConv = {};
+
+async function suggererReponse(ligne){
+  const zone = document.getElementById('sugg-'+ligne);
+  const btn = document.getElementById('btn-sugg-'+ligne);
+  btn.disabled = true; btn.textContent = 'Réflexion en cours…';
+  try{
+    const rep = await api({action:'suggestAnswer', ligne:ligne});
+    zone.innerHTML = `
+      <div class="suggestion-box">
+        <div class="sugg-label">Piste suggérée</div>
+        ${esc(rep.suggestion)}
+        <div class="sugg-actions">
+          <button class="primaire" onclick="appliquerSuggestion(${ligne}, '${rep.suggestion.replace(/'/g,"\\'").replace(/\n/g,' ')}')">Utiliser cette réponse</button>
+        </div>
+      </div>`;
+  }catch(e){
+    zone.innerHTML = '<div class="suggestion-box">Erreur : '+esc(e.message)+'</div>';
+  }
+  btn.disabled = false; btn.textContent = 'Suggérer une réponse';
+}
+function appliquerSuggestion(ligne, texte){
+  document.getElementById('rep-'+ligne).value = texte;
+  toast('Suggestion insérée, tu peux la modifier avant d\u2019enregistrer');
+}
+
+async function toggleConversation(ligne){
+  const box = document.getElementById('conv-'+ligne);
+  const btn = document.getElementById('btn-conv-'+ligne);
+  if(box.style.display !== 'none'){
+    box.style.display = 'none';
+    btn.textContent = 'Voir la conversation';
+    return;
+  }
+  box.style.display = 'flex';
+  btn.textContent = 'Masquer la conversation';
+  if(cacheConv[ligne]){ box.innerHTML = cacheConv[ligne]; return; }
+  box.innerHTML = '<div class="conv-chargement">Chargement de la conversation…</div>';
+  try{
+    const rep = await api({action:'getThread', ligne:ligne});
+    const html = rep.messages.map(m => `
+      <div class="msg ${m.envoyeParMoi ? 'nous' : 'client'}">
+        <div class="msg-meta">${esc(m.de)} · ${esc(m.date)}</div>
+        ${esc(m.corps)}
+      </div>`).join('');
+    cacheConv[ligne] = html;
+    box.innerHTML = html;
+  }catch(e){
+    box.innerHTML = '<div class="conv-chargement">Erreur : '+esc(e.message)+'</div>';
+  }
 }
 async function resoudreRemboursement(ligne){
   try{
