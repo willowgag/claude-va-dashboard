@@ -39,6 +39,9 @@ nav button.actif{background:var(--violet-ink);border-color:var(--violet-ink);col
 .risque-tag{display:inline-block;font-family:var(--disp);font-weight:700;font-size:11px;border-radius:6px;padding:2px 9px;margin-left:6px;text-transform:uppercase;letter-spacing:.03em}
 .risque-tag.haut{background:#5A1418;color:#FF8A80}
 .risque-tag.moyen{background:#5B3A12;color:#FFC680}
+.bulk-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--wash);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:14px}
+.carte-tache{border-left-color:#C79AB0}
+.tache-tag{display:inline-block;font-family:var(--disp);font-weight:700;font-size:11px;border-radius:6px;padding:2px 9px;margin-left:6px;text-transform:uppercase;letter-spacing:.03em;background:var(--wash);color:var(--violet-ink)}
 .risque-tag.bas{background:var(--wash);color:var(--violet-ink)}
 .carte h3{font-size:15px;font-weight:600;margin-bottom:4px}
 .carte .resume{color:var(--muted);margin-bottom:10px}
@@ -102,6 +105,7 @@ td.mono{font-family:var(--mono);font-size:12px;color:var(--muted)}
     <div class="logo">Le Poste<span>.</span></div>
     <button data-tab="attente" class="actif"><span class="ic">✉</span>À répondre</button>
     <button data-tab="remboursements"><span class="ic">⚠</span>Remboursements</button>
+    <button data-tab="afaire"><span class="ic">☑</span>À faire</button>
     <button data-tab="kb"><span class="ic">◆</span>Base de connaissances</button>
     <button data-tab="regles"><span class="ic">≡</span>Règles</button>
     <button data-tab="config"><span class="ic">⚙</span>Réglages</button>
@@ -113,6 +117,7 @@ td.mono{font-family:var(--mono);font-size:12px;color:var(--muted)}
       <span class="dot">●</span>
       <span id="p-attente"><b>–</b> en attente</span>
       <span id="p-remb"><b>–</b> remboursements</span>
+      <span id="p-tache"><b>–</b> à faire</span>
       <span id="p-cout"><b>–</b> ce mois-ci</span>
       <span id="p-mode"><b>–</b></span>
     </div>
@@ -120,6 +125,7 @@ td.mono{font-family:var(--mono);font-size:12px;color:var(--muted)}
 
   <div class="toolbar">
     <button class="primaire" id="btn-run">Lancer un run</button>
+    <button id="btn-archive">Archiver l'historique</button>
     <button id="btn-refresh">Actualiser</button>
     <button id="btn-cfg-conn">Connexion</button>
   </div>
@@ -150,6 +156,14 @@ function sauverConn(){
 }
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('visible'); setTimeout(()=>t.classList.remove('visible'),2400); }
 
+// Si le serveur refuse parce que la liste a bouge (archivage, renumerotation),
+// on rafraichit tout seul au lieu de laisser Willow deviner qu'il faut cliquer Actualiser.
+function gererErreur(e){
+  const msg = String(e && e.message || e);
+  toast('Erreur : '+msg);
+  if(/actualise le tableau de bord/i.test(msg)) charger();
+}
+
 async function api(body){
   const c = conn();
   if(!c.url || !c.token){ $('#panneau-conn').style.display='block'; throw new Error('Connexion à configurer'); }
@@ -166,6 +180,7 @@ async function charger(){
     $('#p-attente').innerHTML = '<b>'+etat.attente.length+'</b> en attente';
     const nbHaut = etat.remboursements.filter(r=>r.risque==='haut').length;
     $('#p-remb').innerHTML = '<b>'+etat.remboursements.length+'</b> remboursements' + (nbHaut ? ' <span style="color:var(--alert)">('+nbHaut+' à risque élevé)</span>' : '');
+    $('#p-tache').innerHTML = '<b>'+etat.aFaire.length+'</b> à faire';
     $('#p-cout').innerHTML = '<b>'+etat.coutMois.toFixed(2)+' $ US</b> ce mois-ci';
     const mode = $('#p-mode');
     mode.innerHTML = etat.autoSend ? '<b>envoi automatique</b>' : '<b>mode brouillon</b>';
@@ -184,20 +199,25 @@ function rendre(){
 
   if(tabActif==='attente'){
     if(!etat.attente.length){ m.innerHTML='<div class="vide"><b>File vide.</b><br>Rien à répondre pour le moment.</div>'; return; }
-    m.innerHTML = etat.attente.map(a => `
+    m.innerHTML = `
+      <div class="bulk-bar">
+        <button class="primaire" onclick="enregistrerToutesLesReponses()" id="btn-bulk">Enregistrer toutes les réponses écrites</button>
+        <span class="meta" style="margin:0">Écris tes réponses dans les cases, puis un seul clic les enregistre toutes.</span>
+      </div>` +
+      etat.attente.map(a => `
       <div class="carte">
         <div class="meta"><span class="marque-tag">${esc(a.marque)}</span>${esc(a.de)} · ${esc(a.date)}</div>
         <h3>${esc(a.sujet)}</h3>
         <div class="resume">${esc(a.resume)}</div>
-        <button class="voir-conv" onclick="toggleConversation(${a.ligne})" id="btn-conv-${a.ligne}">Voir la conversation</button>
+        <button class="voir-conv" onclick="toggleConversation(${a.ligne},'${esc(a.tid)}')" id="btn-conv-${a.ligne}">Voir la conversation</button>
         <div class="conversation" id="conv-${a.ligne}" style="display:none"></div>
         <div class="suggestion-zone" id="sugg-${a.ligne}"></div>
-        <textarea id="rep-${a.ligne}" placeholder="Ta réponse en une ligne, le VA écrit le courriel complet">${esc(a.reponse)}</textarea>
-        <button class="voir-conv" onclick="suggererReponse(${a.ligne})" id="btn-sugg-${a.ligne}">Suggérer une réponse</button>
+        <textarea id="rep-${a.ligne}" class="rep-bulk" data-ligne="${a.ligne}" data-tid="${esc(a.tid)}" data-sujet="${esc(a.sujet)}" placeholder="Ta réponse en une ligne, le VA écrit le courriel complet">${esc(brouillonsPerdus[a.tid] != null ? brouillonsPerdus[a.tid] : a.reponse)}</textarea>
+        <button class="voir-conv" onclick="suggererReponse(${a.ligne},'${esc(a.tid)}')" id="btn-sugg-${a.ligne}">Suggérer une réponse</button>
         <div class="ligne-actions">
           <label class="case"><input type="checkbox" id="kb-${a.ligne}"> Garder dans la base (réponse réutilisable)</label>
-          <button class="primaire" onclick="envoyerReponse(${a.ligne})">Enregistrer la réponse</button>
-          <button class="sup" onclick="retirerLigne(${a.ligne})">Ne pas répondre</button>
+          <button class="primaire" onclick="envoyerReponse(${a.ligne},'${esc(a.tid)}')">Enregistrer la réponse</button>
+          <button class="sup" onclick="retirerLigne(${a.ligne},'${esc(a.tid)}')">Ne pas répondre</button>
         </div>
       </div>`).join('');
   }
@@ -212,11 +232,30 @@ function rendre(){
         </div>
         <h3>${esc(r.sujet)}</h3>
         <div class="resume">${esc(r.resume)}</div>
-        <button class="voir-conv" onclick="toggleConversation(${r.ligne})" id="btn-conv-${r.ligne}">Voir la conversation</button>
+        <button class="voir-conv" onclick="toggleConversation(${r.ligne},'${esc(r.tid)}')" id="btn-conv-${r.ligne}">Voir la conversation</button>
         <div class="conversation" id="conv-${r.ligne}" style="display:none"></div>
         <div class="ligne-actions">
           <span class="meta" style="margin:0">Statut : ${esc(r.statut)}</span>
-          <button class="sup" onclick="resoudreRemboursement(${r.ligne})">Marquer comme réglé</button>
+          <button class="sup" onclick="resoudreRemboursement(${r.ligne},'${esc(r.tid)}')">Marquer comme réglé</button>
+        </div>
+      </div>`).join('');
+  }
+
+  if(tabActif==='afaire'){
+    if(!etat.aFaire.length){ m.innerHTML='<div class="vide"><b>Rien à faire.</b><br>Aucune action manuelle en attente.</div>'; return; }
+    m.innerHTML = etat.aFaire.map(f => `
+      <div class="carte carte-tache">
+        <div class="meta">
+          <span class="marque-tag">${esc(f.marque)}</span>${esc(f.de)} · ${esc(f.date)}
+          <span class="tache-tag">${esc(f.typeLabel)}</span>
+        </div>
+        <h3>${esc(f.sujet)}</h3>
+        <div class="resume">${esc(f.resume)}</div>
+        <button class="voir-conv" onclick="toggleConversation(${f.ligne},'${esc(f.tid)}')" id="btn-conv-${f.ligne}">Voir la conversation</button>
+        <div class="conversation" id="conv-${f.ligne}" style="display:none"></div>
+        <div class="ligne-actions">
+          <span class="meta" style="margin:0">Statut réponse : ${esc(f.statut)}</span>
+          <button class="sup" onclick="resoudreTache(${f.ligne},'${esc(f.tid)}')">Marquer comme fait</button>
         </div>
       </div>`).join('');
   }
@@ -266,37 +305,70 @@ function rendre(){
   }
 }
 
-async function envoyerReponse(ligne){
+async function envoyerReponse(ligne, tid){
   const rep = $('#rep-'+ligne).value.trim();
   if(!rep){ toast('Écris une réponse d\u2019abord'); return; }
+  brouillonsPerdus[tid] = rep; // conserve le texte si la ligne est refusee et que la page se rafraichit
   try{
-    await api({action:'answer', ligne:ligne, reponse:rep, kb: $('#kb-'+ligne).checked});
+    await api({action:'answer', ligne:ligne, tid:tid, reponse:rep, kb: $('#kb-'+ligne).checked});
+    delete brouillonsPerdus[tid];
     toast('Réponse enregistrée, traitée au prochain run');
     charger();
-  }catch(e){ toast('Erreur : '+e.message); }
+  }catch(e){ gererErreur(e); }
 }
-async function retirerLigne(ligne){
+async function enregistrerToutesLesReponses(){
+  const zones = document.querySelectorAll('.rep-bulk');
+  const items = [];
+  zones.forEach(z => {
+    const texte = z.value.trim();
+    if(texte){
+      const ligne = Number(z.dataset.ligne);
+      items.push({ ligne, tid: z.dataset.tid, sujet: z.dataset.sujet, reponse: texte, kb: document.getElementById('kb-'+ligne)?.checked || false });
+    }
+  });
+  if(!items.length){ toast('Aucune réponse écrite à enregistrer'); return; }
+  const btn = $('#btn-bulk'); btn.disabled = true; btn.textContent = 'Enregistrement…';
+  // Avant d'envoyer : on garde une copie de TOUT ce qui est tape, par tid.
+  // Si une ligne est refusee (elle a bouge), son texte sera remis en place apres le rafraichissement.
+  items.forEach(it => { brouillonsPerdus[it.tid] = it.reponse; });
+  try{
+    const rep = await api({action:'answerBulk', reponses: items});
+    (rep.reussis || []).forEach(t => { delete brouillonsPerdus[t]; }); // on n'oublie que ce qui a vraiment ete ecrit
+    const nbErr = rep.erreurs?.length || 0;
+    if(nbErr){
+      toast(rep.traites+' enregistrée(s), '+nbErr+' à refaire (la liste avait bougé, tes textes sont conservés)');
+    } else {
+      toast(rep.traites+' réponse(s) enregistrée(s)');
+    }
+    await charger();
+  }catch(e){ gererErreur(e); }
+  btn.disabled = false; btn.textContent = 'Enregistrer toutes les réponses écrites';
+}
+async function retirerLigne(ligne, tid){
   if(!confirm('Ce courriel ne recevra aucune réponse. Continuer?')) return;
   try{
-    await api({action:'discard', ligne:ligne});
+    await api({action:'discard', ligne:ligne, tid:tid});
     toast('Retiré, aucune réponse envoyée');
     charger();
-  }catch(e){ toast('Erreur : '+e.message); }
+  }catch(e){ gererErreur(e); }
 }
 const cacheConv = {};
+const suggestions = {};      // texte des pistes suggerees, par ligne (jamais inline dans le HTML)
+const brouillonsPerdus = {}; // texte tape mais non enregistre, par tid, restaure apres un rafraichissement
 
-async function suggererReponse(ligne){
+async function suggererReponse(ligne, tid){
   const zone = document.getElementById('sugg-'+ligne);
   const btn = document.getElementById('btn-sugg-'+ligne);
   btn.disabled = true; btn.textContent = 'Réflexion en cours…';
   try{
-    const rep = await api({action:'suggestAnswer', ligne:ligne});
+    const rep = await api({action:'suggestAnswer', ligne:ligne, tid:tid});
+    suggestions[ligne] = String(rep.suggestion || '');
     zone.innerHTML = `
       <div class="suggestion-box">
         <div class="sugg-label">Piste suggérée</div>
         ${esc(rep.suggestion)}
         <div class="sugg-actions">
-          <button class="primaire" onclick="appliquerSuggestion(${ligne}, '${rep.suggestion.replace(/'/g,"\\'").replace(/\n/g,' ')}')">Utiliser cette réponse</button>
+          <button class="primaire" onclick="appliquerSuggestion(${ligne})">Utiliser cette réponse</button>
         </div>
       </div>`;
   }catch(e){
@@ -304,12 +376,14 @@ async function suggererReponse(ligne){
   }
   btn.disabled = false; btn.textContent = 'Suggérer une réponse';
 }
-function appliquerSuggestion(ligne, texte){
+function appliquerSuggestion(ligne){
+  const texte = suggestions[ligne];
+  if(texte == null) return;
   document.getElementById('rep-'+ligne).value = texte;
   toast('Suggestion insérée, tu peux la modifier avant d\u2019enregistrer');
 }
 
-async function toggleConversation(ligne){
+async function toggleConversation(ligne, tid){
   const box = document.getElementById('conv-'+ligne);
   const btn = document.getElementById('btn-conv-'+ligne);
   if(box.style.display !== 'none'){
@@ -322,7 +396,7 @@ async function toggleConversation(ligne){
   if(cacheConv[ligne]){ box.innerHTML = cacheConv[ligne]; return; }
   box.innerHTML = '<div class="conv-chargement">Chargement de la conversation…</div>';
   try{
-    const rep = await api({action:'getThread', ligne:ligne});
+    const rep = await api({action:'getThread', ligne:ligne, tid:tid});
     const html = rep.messages.map(m => `
       <div class="msg ${m.envoyeParMoi ? 'nous' : 'client'}">
         <div class="msg-meta">${esc(m.de)} · ${esc(m.date)}</div>
@@ -334,12 +408,19 @@ async function toggleConversation(ligne){
     box.innerHTML = '<div class="conv-chargement">Erreur : '+esc(e.message)+'</div>';
   }
 }
-async function resoudreRemboursement(ligne){
+async function resoudreRemboursement(ligne, tid){
   try{
-    await api({action:'resolveRefund', ligne:ligne});
+    await api({action:'resolveRefund', ligne:ligne, tid:tid});
     toast('Marqué comme réglé');
     charger();
-  }catch(e){ toast('Erreur : '+e.message); }
+  }catch(e){ gererErreur(e); }
+}
+async function resoudreTache(ligne, tid){
+  try{
+    await api({action:'resolveTask', ligne:ligne, tid:tid});
+    toast('Marqué comme fait');
+    charger();
+  }catch(e){ gererErreur(e); }
 }
 async function ajouterKB(){
   const q=$('#kb-q').value.trim(), r=$('#kb-r').value.trim();
@@ -370,6 +451,12 @@ $('#btn-run').addEventListener('click', async ()=>{
   b.disabled=false; b.textContent='Lancer un run';
 });
 $('#btn-refresh').addEventListener('click', charger);
+$('#btn-archive').addEventListener('click', async ()=>{
+  const b=$('#btn-archive'); b.disabled=true; b.textContent='Archivage…';
+  try{ await api({action:'archiverMaintenant'}); toast('Historique archivé'); charger(); }
+  catch(e){ toast('Erreur : '+e.message); }
+  b.disabled=false; b.textContent='Archiver l\u2019historique';
+});
 $('#btn-cfg-conn').addEventListener('click', ()=>{
   const p=$('#panneau-conn'); p.style.display = p.style.display==='none'?'block':'none';
   $('#in-url').value=conn().url; $('#in-token').value=conn().token;
