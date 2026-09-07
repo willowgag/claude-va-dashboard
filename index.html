@@ -39,6 +39,21 @@ nav button.actif{background:var(--violet-ink);border-color:var(--violet-ink);col
 .risque-tag{display:inline-block;font-family:var(--disp);font-weight:700;font-size:11px;border-radius:6px;padding:2px 9px;margin-left:6px;text-transform:uppercase;letter-spacing:.03em}
 .risque-tag.haut{background:#5A1418;color:#FF8A80}
 .risque-tag.moyen{background:#5B3A12;color:#FFC680}
+.refund-zone:empty{display:none}
+.refund-panel{background:var(--paper);border:1px solid var(--violet-ink);border-radius:12px;padding:12px 14px;margin:8px 0 10px}
+.refund-panel .rp-head{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px 14px;font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:8px}
+.refund-panel .rp-head b{color:var(--ink);font-weight:500}
+.refund-panel table{font-size:13px;margin-bottom:8px}
+.refund-panel td.num{text-align:right;font-family:var(--mono);white-space:nowrap}
+.refund-panel tr.tot td{border-top:2px solid var(--line);font-weight:600}
+.refund-panel tr.rembours td{color:var(--muted)}
+.refund-panel tr.dispo td{color:#FFC680;font-weight:700}
+.refund-panel .rp-montant{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
+.refund-panel .rp-montant input{width:130px;font-family:var(--mono);font-size:15px;text-align:right}
+.refund-panel .rp-confirm{margin-top:10px;padding:10px 12px;border-radius:10px;background:#5A1418;border:1px solid var(--alert);font-size:13.5px}
+.refund-panel .rp-confirm .btns{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+button.danger{background:var(--alert);border-color:var(--alert);color:#fff}
+button.danger:hover{background:#c9362f}
 .bulk-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--wash);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:14px}
 .carte-tache{border-left-color:#C79AB0}
 .tache-tag{display:inline-block;font-family:var(--disp);font-weight:700;font-size:11px;border-radius:6px;padding:2px 9px;margin-left:6px;text-transform:uppercase;letter-spacing:.03em;background:var(--wash);color:var(--violet-ink)}
@@ -234,8 +249,10 @@ function rendre(){
         <div class="resume">${esc(r.resume)}</div>
         <button class="voir-conv" onclick="toggleConversation(${r.ligne},'${esc(r.tid)}')" id="btn-conv-${r.ligne}">Voir la conversation</button>
         <div class="conversation" id="conv-${r.ligne}" style="display:none"></div>
+        <div class="refund-zone" id="refund-${r.ligne}"></div>
         <div class="ligne-actions">
           <span class="meta" style="margin:0">Statut : ${esc(r.statut)}</span>
+          <button class="primaire" onclick="ouvrirRemboursement(${r.ligne},'${esc(r.tid)}')" id="btn-refund-${r.ligne}">Rembourser</button>
           <button class="sup" onclick="resoudreRemboursement(${r.ligne},'${esc(r.tid)}')">Marquer comme réglé</button>
         </div>
       </div>`).join('');
@@ -408,6 +425,75 @@ async function toggleConversation(ligne, tid){
     box.innerHTML = '<div class="conv-chargement">Erreur : '+esc(e.message)+'</div>';
   }
 }
+const apercus = {}; // detail de commande par ligne, pour ne rien re-inliner dans le HTML
+function fmt(n, dev){ return (Number(n)||0).toFixed(2)+' '+(dev||''); }
+
+async function ouvrirRemboursement(ligne, tid){
+  const zone = document.getElementById('refund-'+ligne);
+  const btn = document.getElementById('btn-refund-'+ligne);
+  if(zone.innerHTML){ zone.innerHTML=''; btn.textContent='Rembourser'; return; }
+  btn.disabled=true; btn.textContent='Chargement de la commande…';
+  try{
+    const rep = await api({action:'getRefundPreview', ligne:ligne, tid:tid});
+    const c = rep.commande; apercus[ligne] = c;
+    const lignesHtml = c.lignes.map(l=>`<tr><td>${esc(l.titre)}${l.variante?' <span class="meta" style="margin:0">'+esc(l.variante)+'</span>':''}</td><td class="num">${l.qte} × ${fmt(l.prixUnit)}</td><td class="num">${fmt(l.total)}</td></tr>`).join('');
+    zone.innerHTML = `
+      <div class="refund-panel">
+        <div class="rp-head">
+          <span>Commande <b>${esc(c.numero)}</b> · ${esc(c.date)}</span>
+          <span><b>${esc(c.client.trim()||'client')}</b> · ${esc(c.email)}</span>
+          <span>Paiement : <b>${esc(c.statutPaiement)}</b> · Expédition : <b>${esc(c.statutExpedition)}</b></span>
+        </div>
+        <table>
+          ${lignesHtml}
+          <tr><td colspan="2">Sous-total</td><td class="num">${fmt(c.sousTotal)}</td></tr>
+          ${c.rabais?`<tr><td colspan="2">Rabais</td><td class="num">-${fmt(c.rabais)}</td></tr>`:''}
+          <tr><td colspan="2">Livraison</td><td class="num">${fmt(c.livraison)}</td></tr>
+          <tr><td colspan="2">Taxes</td><td class="num">${fmt(c.taxes)}</td></tr>
+          <tr class="tot"><td colspan="2">Total payé</td><td class="num">${fmt(c.total, c.devise)}</td></tr>
+          ${c.dejaRembourse?`<tr class="rembours"><td colspan="2">Déjà remboursé</td><td class="num">-${fmt(c.dejaRembourse)}</td></tr>`:''}
+          <tr class="dispo"><td colspan="2">Remboursable</td><td class="num">${fmt(c.remboursable, c.devise)}</td></tr>
+        </table>
+        ${c.tokenRemboursement ? `
+        <div class="rp-montant">
+          <label for="mt-${ligne}">Montant à rembourser</label>
+          <input type="text" id="mt-${ligne}" value="${c.remboursable.toFixed(2)}"> <span class="meta" style="margin:0">${esc(c.devise)}</span>
+          <button class="danger" onclick="demanderConfirmation(${ligne},'${esc(tid)}')">Rembourser ce montant</button>
+        </div>
+        <div id="rp-confirm-${ligne}"></div>` :
+        `<div class="meta" style="margin:0;color:var(--alert)">Token de remboursement (write_orders) non configuré pour cette marque : SHOPIFY_REFUND_TOKEN_&lt;MARQUE&gt;</div>`}
+      </div>`;
+    btn.textContent='Fermer';
+  }catch(e){ gererErreur(e); btn.textContent='Rembourser'; }
+  btn.disabled=false;
+}
+
+function demanderConfirmation(ligne, tid){
+  const c = apercus[ligne]; if(!c) return;
+  const val = Number(String(document.getElementById('mt-'+ligne).value).replace(',','.'));
+  if(!(val>0)){ toast('Montant invalide'); return; }
+  if(val > c.remboursable + 0.005){ toast('Maximum remboursable : '+fmt(c.remboursable,c.devise)); return; }
+  const complet = Math.abs(val - c.remboursable) < 0.01;
+  document.getElementById('rp-confirm-'+ligne).innerHTML = `
+    <div class="rp-confirm">
+      Tu vas rembourser <b>${fmt(val, c.devise)}</b> (${complet?'remboursement complet':'remboursement partiel'}) sur la commande <b>${esc(c.numero)}</b> à <b>${esc(c.email)}</b>. Cette action est irréversible.
+      <div class="btns">
+        <button class="danger" onclick="confirmerRemboursement(${ligne},'${esc(tid)}',${val})">Oui, rembourser ${fmt(val, c.devise)}</button>
+        <button onclick="document.getElementById('rp-confirm-${ligne}').innerHTML=''">Annuler</button>
+      </div>
+    </div>`;
+}
+
+async function confirmerRemboursement(ligne, tid, montant){
+  const box = document.getElementById('rp-confirm-'+ligne);
+  box.querySelectorAll('button').forEach(b=>b.disabled=true);
+  try{
+    const rep = await api({action:'executeRefund', ligne:ligne, tid:tid, montant:montant, confirmation:'OUI'});
+    toast('Remboursé '+fmt(rep.montant, rep.devise)+' sur '+rep.numero+' · courriel : '+rep.courriel);
+    charger();
+  }catch(e){ gererErreur(e); box.querySelectorAll('button').forEach(b=>b.disabled=false); }
+}
+
 async function resoudreRemboursement(ligne, tid){
   try{
     await api({action:'resolveRefund', ligne:ligne, tid:tid});
