@@ -254,6 +254,20 @@ function appliquerTextesStatiques(){
   document.querySelectorAll('[data-tph]').forEach(el => { el.placeholder = T(el.dataset.tph); });
   const sel = $('#sel-lang'); if(sel) sel.value = langue;
 }
+// Resume dans la langue de l'interface. Les anciennes lignes n'ont que le francais.
+// Les notes ajoutees entre crochets ([Sarah : ...], [REMBOURSE ...]) vivent sur la version francaise : on les recolle.
+function resumeAffiche(x){
+  const notes = (String(x.resume||'').match(/\[[^\]]+\]/g) || []).join(' ');
+  const t = langue==='en' ? x.resumeEn : langue==='ur' ? x.resumeUr : '';
+  if(!t) return x.resume;
+  return t + (notes ? ' ' + notes : '');
+}
+const TYPE_LABELS = {
+  fr:{adresse:"Changement d'adresse", produit:'Changement de produit', abonnement:"Annulation/modification d'abonnement"},
+  en:{adresse:'Address change', produit:'Product change', abonnement:'Subscription cancel/change'},
+  ur:{adresse:'پتہ تبدیلی', produit:'پروڈکٹ تبدیلی', abonnement:'سبسکرپشن منسوخی/تبدیلی'}
+};
+function typeLabel(t){ return (TYPE_LABELS[langue]||TYPE_LABELS.fr)[t] || t; }
 let marqueFiltre = localStorage.getItem('va_marque') || '';
 function changerMarque(m){ marqueFiltre = m; localStorage.setItem('va_marque', m); if(etat) rendre(); }
 function filtreMarque(liste){ return marqueFiltre ? liste.filter(x => x.marque === marqueFiltre) : liste; }
@@ -310,7 +324,15 @@ async function charger(){
     mode.innerHTML = etat.autoSend ? '<b>'+T('modeAuto')+'</b>' : '<b>'+T('modeBrouillon')+'</b>';
     mode.className = etat.autoSend ? 'mode-auto' : 'mode-brouillon';
     const sel = $('#sel-marque');
-    sel.innerHTML = '<option value="">'+T('toutesMarques')+'</option>' + (etat.marques||[]).map(m=>`<option value="${esc(m)}"${m===marqueFiltre?' selected':''}>${esc(m)}</option>`).join('');
+    if(etat.marqueVerrouillee){
+      marqueFiltre = etat.marques[0] || '';
+      sel.innerHTML = `<option value="${esc(marqueFiltre)}" selected>${esc(marqueFiltre)}</option>`;
+      sel.disabled = true;
+    } else {
+      sel.disabled = false;
+      if(marqueFiltre && !(etat.marques||[]).includes(marqueFiltre)) marqueFiltre = '';
+      sel.innerHTML = '<option value="">'+T('toutesMarques')+'</option>' + (etat.marques||[]).map(m=>`<option value="${esc(m)}"${m===marqueFiltre?' selected':''}>${esc(m)}</option>`).join('');
+    }
     appliquerRole(etat.role);
     appliquerTextesStatiques();
     rendre();
@@ -350,7 +372,7 @@ function rendre(){
       <div class="carte${a.pourWillow?' pour-willow':''}">
         <div class="meta"><span class="marque-tag">${esc(a.marque)}</span>${esc(a.de)} · ${esc(a.date)}${a.pourWillow?' <span class="tache-tag" style="background:#5A1418;color:#FF8A80">'+T('renvoye')+'</span>':''}${a.reponse&&a.par?' <span class="tache-tag" style="background:#1F4D3A;color:#7FE0B0">'+T('repDe')+' '+esc(a.par)+' · '+T('attenteEnvoi')+'</span>':''}</div>
         <h3>${esc(a.sujet)}</h3>
-        <div class="resume">${esc(a.resume)}</div>
+        <div class="resume">${esc(resumeAffiche(a))}</div>
         ${convBloc(a)}
         <div class="suggestion-zone" id="sugg-${a.ligne}"></div>
         <textarea id="rep-${a.ligne}" class="rep-bulk" data-ligne="${a.ligne}" data-tid="${esc(a.tid)}" data-sujet="${esc(a.sujet)}" placeholder="${T('placeholderRep')}">${esc(brouillonsPerdus[a.tid] != null ? brouillonsPerdus[a.tid] : a.reponse)}</textarea>
@@ -375,7 +397,7 @@ function rendre(){
           ${r.demande>0?`<span class="tache-tag" style="background:#5B3A12;color:#FFC680">${T('demandeEnCours')} · ${fmt(r.demande)} (${esc(r.demandePar)})</span>`:''}
         </div>
         <h3>${esc(r.sujet)}</h3>
-        <div class="resume">${esc(r.resume)}</div>
+        <div class="resume">${esc(resumeAffiche(r))}</div>
         ${convBloc(r)}
         <div class="refund-zone" id="refund-${r.ligne}"></div>
         <div class="ligne-actions">
@@ -396,7 +418,7 @@ function rendre(){
           <span class="risque-tag ${esc(r.risque)}">${risqueLbl(r.risque)}</span>
         </div>
         <h3>${esc(r.sujet)}</h3>
-        <div class="resume">${esc(r.resume)}</div>
+        <div class="resume">${esc(resumeAffiche(r))}</div>
         <div class="rp-confirm" style="margin:8px 0">${T('demandePar')} <b>${esc(r.par)}</b> : <b>${fmt(r.montant)}</b></div>
         ${convBloc(r)}
         <div class="refund-zone" id="refund-${r.ligne}"></div>
@@ -414,10 +436,10 @@ function rendre(){
       <div class="carte carte-tache">
         <div class="meta">
           <span class="marque-tag">${esc(f.marque)}</span>${esc(f.de)} · ${esc(f.date)}
-          <span class="tache-tag">${esc(f.typeLabel)}</span>
+          <span class="tache-tag">${esc(typeLabel(f.type))}</span>
         </div>
         <h3>${esc(f.sujet)}</h3>
-        <div class="resume">${esc(f.resume)}</div>
+        <div class="resume">${esc(resumeAffiche(f))}</div>
         ${convBloc(f)}
         <div class="ligne-actions">
           <span class="meta" style="margin:0">${T('statutRep')} : ${esc(f.statut)}</span>
