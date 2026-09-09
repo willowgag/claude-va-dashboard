@@ -22,7 +22,11 @@ header h1 span{color:var(--violet)}
 .pulse b{color:var(--ink);font-weight:500}
 .pulse .dot{color:var(--violet)}
 .mode-brouillon b{color:var(--violet-ink)} .mode-auto b{color:var(--ok)}
-.toolbar{display:flex;gap:8px;margin:16px 0 6px;flex-wrap:wrap}
+.toolbar{display:flex;gap:8px;margin:16px 0 6px;flex-wrap:wrap;align-items:center}
+.toolbar select{padding:8px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);font-family:var(--body);font-size:13.5px}
+[dir=rtl] .carte{border-left:1px solid var(--line);border-right:4px solid var(--violet)}
+[dir=rtl] .carte.risque-haut,[dir=rtl] .carte.pour-willow{border-right-color:var(--alert)}
+[dir=rtl] .msg.client{align-self:flex-end} [dir=rtl] .msg.nous{align-self:flex-start}
 button{font-family:var(--body);font-weight:600;font-size:14px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:9px 14px;cursor:pointer}
 button:hover{border-color:var(--violet)}
 button:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
@@ -55,6 +59,7 @@ nav button.actif{background:var(--violet-ink);border-color:var(--violet-ink);col
 button.danger{background:var(--alert);border-color:var(--alert);color:#fff}
 button.danger:hover{background:#c9362f}
 .bulk-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--wash);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:14px}
+.carte.pour-willow{border-left-color:var(--alert)}
 .carte-tache{border-left-color:#C79AB0}
 .tache-tag{display:inline-block;font-family:var(--disp);font-weight:700;font-size:11px;border-radius:6px;padding:2px 9px;margin-left:6px;text-transform:uppercase;letter-spacing:.03em;background:var(--wash);color:var(--violet-ink)}
 .risque-tag.bas{background:var(--wash);color:var(--violet-ink)}
@@ -118,13 +123,15 @@ td.mono{font-family:var(--mono);font-size:12px;color:var(--muted)}
 <div class="layout">
   <nav class="sidebar" id="tabs">
     <div class="logo">Le Poste<span>.</span></div>
-    <button data-tab="attente" class="actif"><span class="ic">✉</span>À répondre</button>
-    <button data-tab="remboursements"><span class="ic">⚠</span>Remboursements</button>
-    <button data-tab="afaire"><span class="ic">☑</span>À faire</button>
-    <button data-tab="kb"><span class="ic">◆</span>Base de connaissances</button>
-    <button data-tab="regles"><span class="ic">≡</span>Règles</button>
-    <button data-tab="config"><span class="ic">⚙</span>Réglages</button>
-    <button data-tab="log"><span class="ic">▤</span>Journal</button>
+    <button data-tab="attente" class="actif"><span class="ic">✉</span><span data-t="aRepondre">À répondre</span></button>
+    <button data-tab="remboursements"><span class="ic">⚠</span><span data-t="rembours">Remboursements</span></button>
+    <button data-tab="approbations" id="tab-approb"><span class="ic">✔</span><span data-t="approb">Approbations</span></button>
+    <button data-tab="afaire"><span class="ic">☑</span><span data-t="aFaire">À faire</span></button>
+    <button data-tab="notes"><span class="ic">✎</span><span data-t="notes">Notes</span></button>
+    <button data-tab="kb"><span class="ic">◆</span><span data-t="kb">Base de connaissances</span></button>
+    <button data-tab="regles"><span class="ic">≡</span><span data-t="regles">Règles</span></button>
+    <button data-tab="config"><span class="ic">⚙</span><span data-t="reglages">Réglages</span></button>
+    <button data-tab="log"><span class="ic">▤</span><span data-t="journal">Journal</span></button>
   </nav>
   <div class="content">
   <header>
@@ -133,39 +140,133 @@ td.mono{font-family:var(--mono);font-size:12px;color:var(--muted)}
       <span id="p-attente"><b>–</b> en attente</span>
       <span id="p-remb"><b>–</b> remboursements</span>
       <span id="p-tache"><b>–</b> à faire</span>
+      <span id="p-approb"></span>
       <span id="p-cout"><b>–</b> ce mois-ci</span>
       <span id="p-mode"><b>–</b></span>
+      <span id="role-badge" style="color:var(--violet-ink);font-weight:600"></span>
     </div>
   </header>
 
   <div class="toolbar">
-    <button class="primaire" id="btn-run">Lancer un run</button>
-    <button id="btn-archive">Archiver l'historique</button>
-    <button id="btn-refresh">Actualiser</button>
-    <button id="btn-cfg-conn">Connexion</button>
+    <button class="primaire" id="btn-run" data-t="lancerRun">Lancer un run</button>
+    <button id="btn-archive" data-t="archiver">Archiver l'historique</button>
+    <button id="btn-refresh" data-t="actualiser">Actualiser</button>
+    <button id="btn-cfg-conn" data-t="connexion">Connexion</button>
+    <select id="sel-marque" onchange="changerMarque(this.value)" title="Marque"></select>
+    <select id="sel-lang" onchange="changerLangue(this.value)" title="Langue">
+      <option value="fr">Français</option><option value="en">English</option><option value="ur">اردو</option>
+    </select>
   </div>
 
   <div class="panneau" id="panneau-conn" style="display:none">
-    <h2>Connexion au moteur</h2>
-    <div class="champ"><label for="in-url">URL de l'application Web (Apps Script)</label><input type="text" id="in-url" placeholder="https://script.google.com/macros/s/.../exec"></div>
-    <div class="champ"><label for="in-token">Jeton du dashboard</label><input type="text" id="in-token" placeholder="ton DASHBOARD_TOKEN"></div>
-    <button class="primaire" onclick="sauverConn()">Enregistrer et connecter</button>
+    <h2 data-t="connTitre">Connexion au moteur</h2>
+    <div class="champ"><label for="in-url" data-t="connUrl">URL de l'application Web (Apps Script)</label><input type="text" id="in-url" placeholder="https://script.google.com/macros/s/.../exec"></div>
+    <div class="champ"><label for="in-token" data-t="connJeton">Jeton du dashboard</label><input type="text" id="in-token" placeholder="…"></div>
+    <div class="champ"><label for="in-nom" data-t="connNom">Ton nom (pour savoir qui a répondu quoi)</label><input type="text" id="in-nom" placeholder="ex. Willow, Sarah"></div>
+    <button class="primaire" onclick="sauverConn()" data-t="connBtn">Enregistrer et connecter</button>
   </div>
 
-  <main id="contenu"><div class="chargement">Connexion…</div></main>
+  <main id="contenu"><div class="chargement" data-t="connexionEnCours">Connexion…</div></main>
   </div>
 </div>
 <div class="toast" id="toast"></div>
 
 <script>
+
+// ============ Langue de l'interface (fr / en / ur). N'affecte PAS les courriels clients. ============
+const LANGUES = {
+fr:{aRepondre:'À répondre',rembours:'Remboursements',aFaire:'À faire',approb:'Approbations',notes:'Notes',kb:'Base de connaissances',regles:'Règles',reglages:'Réglages',journal:'Journal',
+lancerRun:'Lancer un run',runEnCours:'Run en cours…',runFini:'Run terminé',archiver:"Archiver l'historique",archivage:'Archivage…',archive:'Historique archivé',actualiser:'Actualiser',connexion:'Connexion',
+enAttente:'en attente',remb:'remboursements',aRisque:'à risque élevé',af:'à faire',approbs:'à approuver',ceMois:'ce mois-ci',modeBrouillon:'mode brouillon',modeAuto:'envoi automatique',modeVA:'Mode VA',
+toutesMarques:'Toutes les marques',langue:'Langue',
+connTitre:'Connexion au moteur',connUrl:"URL de l'application Web (Apps Script)",connJeton:'Jeton du dashboard',connNom:'Ton nom (pour savoir qui a répondu quoi)',connBtn:'Enregistrer et connecter',
+fileVide:'File vide.',rienARepondre:'Rien à répondre pour le moment.',bulkBtn:'Enregistrer toutes les réponses écrites',bulkHint:'Écris tes réponses dans les cases, puis un seul clic les enregistre toutes.',bulkSaving:'Enregistrement…',
+voirConv:'Voir la conversation',masquerConv:'Masquer la conversation',convCharg:'Chargement de la conversation…',placeholderRep:'Ta réponse en une ligne, le VA écrit le courriel complet',
+suggerer:'Suggérer une réponse',reflexion:'Réflexion en cours…',piste:'Piste suggérée',utiliser:'Utiliser cette réponse',suggInseree:'Suggestion insérée, tu peux la modifier avant d’enregistrer',
+garderKB:'Garder dans la base (réponse réutilisable)',enregistrer:'Enregistrer la réponse',nePasRep:'Ne pas répondre',renvoyer:'Renvoyer à Willow',renvoye:'Renvoyé à Willow',renvoyerPourquoi:'Pourquoi tu renvoies celui-ci à Willow? (optionnel, une ligne)',
+ecrisDabord:'Écris une réponse d’abord',repEnregistree:'Réponse enregistrée, traitée au prochain run',aucuneRep:'Aucune réponse écrite à enregistrer',nbEnreg:'réponse(s) enregistrée(s)',aRefaire:'à refaire (la liste avait bougé, tes textes sont conservés)',
+confirmNePas:'Ce courriel ne recevra aucune réponse. Continuer?',retire:'Retiré, aucune réponse envoyée',
+aucunRemb:'Aucun remboursement en attente.',rienATrier:'Rien à trier pour le moment.',risqueEleve:'Risque élevé',risqueMoyen:'Risque moyen',risqueFaible:'Risque faible',statut:'Statut',regle:'Marquer comme réglé',marqueRegle:'Marqué comme réglé',
+rembourser:'Rembourser',demanderRemb:'Demander le remboursement',fermer:'Fermer',chargCommande:'Chargement de la commande…',commande:'Commande',client:'client',paiement:'Paiement',expedition:'Expédition',sousTotal:'Sous-total',rabais:'Rabais',livraison:'Livraison',taxes:'Taxes',totalPaye:'Total payé',dejaRemb:'Déjà remboursé',remboursable:'Remboursable',
+montantARemb:'Montant à rembourser',rembCeMontant:'Rembourser ce montant',demanderCeMontant:'Demander ce montant',tokenManquant:'Token de remboursement (write_orders) non configuré pour cette marque : SHOPIFY_REFUND_TOKEN_<MARQUE>',
+montantInvalide:'Montant invalide',maxRemb:'Maximum remboursable :',rembComplet:'remboursement complet',rembPartiel:'remboursement partiel',tuVasRemb:'Tu vas rembourser',surCommande:'sur la commande',a:'à',irreversible:'Cette action est irréversible.',ouiRemb:'Oui, rembourser',annuler:'Annuler',
+rembFait:'Remboursé',courriel:'courriel',demandeEnvoyee:'Demande envoyée à Willow',demandeEnCours:'Demande en attente de Willow',demandePourquoi:'Note pour Willow (optionnel)',
+rienAFaire:'Rien à faire.',aucuneAction:'Aucune action manuelle en attente.',statutRep:'Statut réponse',fait:'Marquer comme fait',marqueFait:'Marqué comme fait',
+aucuneApprob:'Aucune demande à approuver.',demandePar:'demandé par',approuver:'Approuver et rembourser',refuser:'Refuser',refuserPourquoi:'Raison du refus (optionnel)',refuse:'Demande refusée',
+notesVide:'Aucune note.',ajouterNote:'Ajouter',placeholderNote:'Écris une note pour l’équipe…',noteAjoutee:'Note ajoutée',noteVide:'Note vide',retirer:'retirer',confirmRetirer:'Retirer cette ligne?',
+question:'Question type',reponse:'Réponse approuvée',ajouter:'Ajouter',ajouteBase:'Ajouté à la base',qrRequis:'Question et réponse requises',marque:'Marque',portee:'Portée',regleCol:'Règle',nouvelleRegle:'Nouvelle règle en français normal',ecrisRegle:'Écris la règle',regleAjoutee:'Règle ajoutée',
+enregistrerCfg:'Enregistrer',cfgHint:'HEURES_RUN reprogramme les runs automatiquement. AUTO_SEND_DATE au format 2026-07-30.',enregistre:'enregistré',
+journalVide:'Journal vide.',date:'Date',categorie:'Catégorie',action:'Action',cout:'Coût',pasConn:'Pas de connexion.',chargement:'Chargement…',connexionEnCours:'Connexion…',erreur:'Erreur'},
+en:{aRepondre:'To answer',rembours:'Refunds',aFaire:'To do',approb:'Approvals',notes:'Notes',kb:'Knowledge base',regles:'Rules',reglages:'Settings',journal:'Log',
+lancerRun:'Run now',runEnCours:'Running…',runFini:'Run complete',archiver:'Archive history',archivage:'Archiving…',archive:'History archived',actualiser:'Refresh',connexion:'Connection',
+enAttente:'pending',remb:'refunds',aRisque:'high risk',af:'to do',approbs:'to approve',ceMois:'this month',modeBrouillon:'draft mode',modeAuto:'auto send',modeVA:'VA mode',
+toutesMarques:'All brands',langue:'Language',
+connTitre:'Connect to the engine',connUrl:'Web app URL (Apps Script)',connJeton:'Dashboard token',connNom:'Your name (so we know who answered what)',connBtn:'Save and connect',
+fileVide:'Queue empty.',rienARepondre:'Nothing to answer right now.',bulkBtn:'Save all written answers',bulkHint:'Write your answers in the boxes, then one click saves them all.',bulkSaving:'Saving…',
+voirConv:'View conversation',masquerConv:'Hide conversation',convCharg:'Loading conversation…',placeholderRep:'Your answer in one line, the VA writes the full email',
+suggerer:'Suggest an answer',reflexion:'Thinking…',piste:'Suggested answer',utiliser:'Use this answer',suggInseree:'Suggestion inserted, you can edit it before saving',
+garderKB:'Keep in knowledge base (reusable answer)',enregistrer:'Save answer',nePasRep:'Do not answer',renvoyer:'Send to Willow',renvoye:'Sent to Willow',renvoyerPourquoi:'Why are you sending this to Willow? (optional, one line)',
+ecrisDabord:'Write an answer first',repEnregistree:'Answer saved, processed on next run',aucuneRep:'No written answer to save',nbEnreg:'answer(s) saved',aRefaire:'to redo (the list had moved, your text is kept)',
+confirmNePas:'This email will get no answer. Continue?',retire:'Removed, no answer sent',
+aucunRemb:'No pending refunds.',rienATrier:'Nothing to sort right now.',risqueEleve:'High risk',risqueMoyen:'Medium risk',risqueFaible:'Low risk',statut:'Status',regle:'Mark as settled',marqueRegle:'Marked as settled',
+rembourser:'Refund',demanderRemb:'Request refund',fermer:'Close',chargCommande:'Loading order…',commande:'Order',client:'customer',paiement:'Payment',expedition:'Shipping',sousTotal:'Subtotal',rabais:'Discount',livraison:'Shipping',taxes:'Taxes',totalPaye:'Total paid',dejaRemb:'Already refunded',remboursable:'Refundable',
+montantARemb:'Amount to refund',rembCeMontant:'Refund this amount',demanderCeMontant:'Request this amount',tokenManquant:'Refund token (write_orders) not configured for this brand: SHOPIFY_REFUND_TOKEN_<BRAND>',
+montantInvalide:'Invalid amount',maxRemb:'Maximum refundable:',rembComplet:'full refund',rembPartiel:'partial refund',tuVasRemb:'You are about to refund',surCommande:'on order',a:'to',irreversible:'This action is irreversible.',ouiRemb:'Yes, refund',annuler:'Cancel',
+rembFait:'Refunded',courriel:'email',demandeEnvoyee:'Request sent to Willow',demandeEnCours:'Request awaiting Willow',demandePourquoi:'Note for Willow (optional)',
+rienAFaire:'Nothing to do.',aucuneAction:'No manual action pending.',statutRep:'Answer status',fait:'Mark as done',marqueFait:'Marked as done',
+aucuneApprob:'No request to approve.',demandePar:'requested by',approuver:'Approve and refund',refuser:'Decline',refuserPourquoi:'Reason for declining (optional)',refuse:'Request declined',
+notesVide:'No notes.',ajouterNote:'Add',placeholderNote:'Write a note for the team…',noteAjoutee:'Note added',noteVide:'Empty note',retirer:'remove',confirmRetirer:'Remove this line?',
+question:'Typical question',reponse:'Approved answer',ajouter:'Add',ajouteBase:'Added to knowledge base',qrRequis:'Question and answer required',marque:'Brand',portee:'Scope',regleCol:'Rule',nouvelleRegle:'New rule in plain language',ecrisRegle:'Write the rule',regleAjoutee:'Rule added',
+enregistrerCfg:'Save',cfgHint:'HEURES_RUN reschedules runs automatically. AUTO_SEND_DATE format 2026-07-30.',enregistre:'saved',
+journalVide:'Log empty.',date:'Date',categorie:'Category',action:'Action',cout:'Cost',pasConn:'Not connected.',chargement:'Loading…',connexionEnCours:'Connecting…',erreur:'Error'},
+ur:{aRepondre:'جواب دینا ہے',rembours:'رقم کی واپسی',aFaire:'کرنے کے کام',approb:'منظوریاں',notes:'نوٹس',kb:'معلوماتی ذخیرہ',regles:'قواعد',reglages:'ترتیبات',journal:'لاگ',
+lancerRun:'ابھی چلائیں',runEnCours:'چل رہا ہے…',runFini:'مکمل ہو گیا',archiver:'تاریخ محفوظ کریں',archivage:'محفوظ ہو رہا ہے…',archive:'تاریخ محفوظ ہو گئی',actualiser:'تازہ کریں',connexion:'کنکشن',
+enAttente:'زیر التوا',remb:'واپسیاں',aRisque:'زیادہ خطرہ',af:'کرنے کے کام',approbs:'منظوری کے لیے',ceMois:'اس مہینے',modeBrouillon:'ڈرافٹ موڈ',modeAuto:'خودکار ارسال',modeVA:'VA موڈ',
+toutesMarques:'تمام برانڈز',langue:'زبان',
+connTitre:'انجن سے جڑیں',connUrl:'ویب ایپ URL (Apps Script)',connJeton:'ڈیش بورڈ ٹوکن',connNom:'آپ کا نام (تاکہ پتہ چلے کس نے کیا جواب دیا)',connBtn:'محفوظ کریں اور جڑیں',
+fileVide:'قطار خالی ہے۔',rienARepondre:'ابھی کوئی جواب باقی نہیں۔',bulkBtn:'تمام لکھے گئے جوابات محفوظ کریں',bulkHint:'خانوں میں جوابات لکھیں، پھر ایک کلک سے سب محفوظ ہو جائیں گے۔',bulkSaving:'محفوظ ہو رہا ہے…',
+voirConv:'گفتگو دیکھیں',masquerConv:'گفتگو چھپائیں',convCharg:'گفتگو لوڈ ہو رہی ہے…',placeholderRep:'ایک سطر میں آپ کا جواب، VA مکمل ای میل لکھے گا',
+suggerer:'جواب تجویز کریں',reflexion:'سوچ رہا ہے…',piste:'تجویز کردہ جواب',utiliser:'یہ جواب استعمال کریں',suggInseree:'تجویز داخل ہو گئی، محفوظ کرنے سے پہلے ترمیم کر سکتے ہیں',
+garderKB:'معلوماتی ذخیرے میں رکھیں (دوبارہ قابلِ استعمال)',enregistrer:'جواب محفوظ کریں',nePasRep:'جواب نہ دیں',renvoyer:'Willow کو بھیجیں',renvoye:'Willow کو بھیج دیا گیا',renvoyerPourquoi:'یہ Willow کو کیوں بھیج رہے ہیں؟ (اختیاری، ایک سطر)',
+ecrisDabord:'پہلے جواب لکھیں',repEnregistree:'جواب محفوظ، اگلے run پر پروسیس ہوگا',aucuneRep:'محفوظ کرنے کے لیے کوئی جواب نہیں',nbEnreg:'جواب محفوظ ہوئے',aRefaire:'دوبارہ کرنے ہیں (فہرست بدل گئی تھی، آپ کا متن محفوظ ہے)',
+confirmNePas:'اس ای میل کا کوئی جواب نہیں جائے گا۔ جاری رکھیں؟',retire:'ہٹا دیا گیا، کوئی جواب نہیں بھیجا گیا',
+aucunRemb:'کوئی واپسی زیر التوا نہیں۔',rienATrier:'ابھی کچھ چھانٹنے کو نہیں۔',risqueEleve:'زیادہ خطرہ',risqueMoyen:'درمیانہ خطرہ',risqueFaible:'کم خطرہ',statut:'حالت',regle:'طے شدہ نشان زد کریں',marqueRegle:'طے شدہ نشان زد ہو گیا',
+rembourser:'رقم واپس کریں',demanderRemb:'واپسی کی درخواست',fermer:'بند کریں',chargCommande:'آرڈر لوڈ ہو رہا ہے…',commande:'آرڈر',client:'گاہک',paiement:'ادائیگی',expedition:'ترسیل',sousTotal:'ذیلی کل',rabais:'رعایت',livraison:'ترسیل',taxes:'ٹیکس',totalPaye:'کل ادا شدہ',dejaRemb:'پہلے واپس شدہ',remboursable:'قابلِ واپسی',
+montantARemb:'واپس کرنے کی رقم',rembCeMontant:'یہ رقم واپس کریں',demanderCeMontant:'اس رقم کی درخواست کریں',tokenManquant:'اس برانڈ کے لیے واپسی ٹوکن (write_orders) ترتیب نہیں دیا گیا: SHOPIFY_REFUND_TOKEN_<BRAND>',
+montantInvalide:'غلط رقم',maxRemb:'زیادہ سے زیادہ قابلِ واپسی:',rembComplet:'مکمل واپسی',rembPartiel:'جزوی واپسی',tuVasRemb:'آپ واپس کرنے والے ہیں',surCommande:'آرڈر پر',a:'کو',irreversible:'یہ عمل ناقابلِ واپسی ہے۔',ouiRemb:'ہاں، واپس کریں',annuler:'منسوخ',
+rembFait:'واپس کر دیا گیا',courriel:'ای میل',demandeEnvoyee:'درخواست Willow کو بھیج دی گئی',demandeEnCours:'درخواست Willow کی منظوری کی منتظر',demandePourquoi:'Willow کے لیے نوٹ (اختیاری)',
+rienAFaire:'کچھ کرنے کو نہیں۔',aucuneAction:'کوئی دستی کارروائی باقی نہیں۔',statutRep:'جواب کی حالت',fait:'مکمل نشان زد کریں',marqueFait:'مکمل نشان زد ہو گیا',
+aucuneApprob:'منظوری کے لیے کوئی درخواست نہیں۔',demandePar:'درخواست کنندہ',approuver:'منظور کریں اور واپس کریں',refuser:'مسترد کریں',refuserPourquoi:'مسترد کرنے کی وجہ (اختیاری)',refuse:'درخواست مسترد',
+notesVide:'کوئی نوٹ نہیں۔',ajouterNote:'شامل کریں',placeholderNote:'ٹیم کے لیے نوٹ لکھیں…',noteAjoutee:'نوٹ شامل ہو گیا',noteVide:'خالی نوٹ',retirer:'ہٹائیں',confirmRetirer:'یہ سطر ہٹائیں؟',
+question:'عام سوال',reponse:'منظور شدہ جواب',ajouter:'شامل کریں',ajouteBase:'ذخیرے میں شامل ہو گیا',qrRequis:'سوال اور جواب دونوں ضروری ہیں',marque:'برانڈ',portee:'دائرہ',regleCol:'قاعدہ',nouvelleRegle:'سادہ زبان میں نیا قاعدہ',ecrisRegle:'قاعدہ لکھیں',regleAjoutee:'قاعدہ شامل ہو گیا',
+enregistrerCfg:'محفوظ کریں',cfgHint:'HEURES_RUN خود بخود runs کو دوبارہ شیڈول کرتا ہے۔ AUTO_SEND_DATE کی شکل 2026-07-30۔',enregistre:'محفوظ',
+journalVide:'لاگ خالی ہے۔',date:'تاریخ',categorie:'زمرہ',action:'کارروائی',cout:'لاگت',pasConn:'کنکشن نہیں۔',chargement:'لوڈ ہو رہا ہے…',connexionEnCours:'جڑ رہا ہے…',erreur:'خرابی'}
+};
+let langue = localStorage.getItem('va_lang') || 'fr';
+function T(k){ return (LANGUES[langue] && LANGUES[langue][k]) || LANGUES.fr[k] || k; }
+function changerLangue(l){
+  langue = l; localStorage.setItem('va_lang', l);
+  document.documentElement.lang = l; document.documentElement.dir = (l === 'ur') ? 'rtl' : 'ltr';
+  appliquerTextesStatiques(); if(etat) rendre();
+}
+function appliquerTextesStatiques(){
+  document.querySelectorAll('[data-t]').forEach(el => { el.textContent = T(el.dataset.t); });
+  document.querySelectorAll('[data-tph]').forEach(el => { el.placeholder = T(el.dataset.tph); });
+  const sel = $('#sel-lang'); if(sel) sel.value = langue;
+}
+let marqueFiltre = localStorage.getItem('va_marque') || '';
+function changerMarque(m){ marqueFiltre = m; localStorage.setItem('va_marque', m); if(etat) rendre(); }
+function filtreMarque(liste){ return marqueFiltre ? liste.filter(x => x.marque === marqueFiltre) : liste; }
+
 let etat = null;
 let tabActif = 'attente';
 const $ = s => document.querySelector(s);
 
-function conn(){ return { url: localStorage.getItem('va_url')||'', token: localStorage.getItem('va_token')||'' }; }
+function conn(){ return { url: localStorage.getItem('va_url')||'', token: localStorage.getItem('va_token')||'', nom: localStorage.getItem('va_nom')||'' }; }
 function sauverConn(){
   localStorage.setItem('va_url', $('#in-url').value.trim());
   localStorage.setItem('va_token', $('#in-token').value.trim());
+  localStorage.setItem('va_nom', $('#in-nom').value.trim());
   $('#panneau-conn').style.display='none';
   charger();
 }
@@ -175,92 +276,139 @@ function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('vi
 // on rafraichit tout seul au lieu de laisser Willow deviner qu'il faut cliquer Actualiser.
 function gererErreur(e){
   const msg = String(e && e.message || e);
-  toast('Erreur : '+msg);
+  toast(T('erreur')+' : '+msg);
   if(/actualise le tableau de bord/i.test(msg)) charger();
 }
 
 async function api(body){
   const c = conn();
   if(!c.url || !c.token){ $('#panneau-conn').style.display='block'; throw new Error('Connexion à configurer'); }
-  const r = await fetch(c.url, { method:'POST', body: JSON.stringify(Object.assign({token:c.token}, body)) });
+  const r = await fetch(c.url, { method:'POST', body: JSON.stringify(Object.assign({token:c.token, qui:c.nom}, body)) });
   const j = await r.json();
   if(!j.ok) throw new Error(j.erreur || 'Erreur inconnue');
   return j;
 }
 
+const TABS_LOURDS = {kb:'kb', regles:'regles', config:'config', log:'log'};
 async function charger(){
-  $('#contenu').innerHTML = '<div class="chargement">Chargement…</div>';
+  $('#contenu').innerHTML = '<div class="chargement">'+T('chargement')+'</div>';
   try{
-    etat = await api({action:'getAll'});
-    $('#p-attente').innerHTML = '<b>'+etat.attente.length+'</b> en attente';
+    // Files de travail toujours ; onglets lourds seulement si on est dessus (moins de lectures feuille par clic)
+    const tabs = ['files']; if(TABS_LOURDS[tabActif]) tabs.push(TABS_LOURDS[tabActif]);
+    const nouveau = await api({action:'getAll', tabs:tabs});
+    if(tabActif==='notes'){ try{ nouveau.notes = (await api({action:'getNotes'})).notes; }catch(e){ nouveau.notes = []; } }
+    if(etat){ ['kb','regles','config','log'].forEach(k => { if(nouveau[k] == null && etat[k] != null) nouveau[k] = etat[k]; }); }
+    etat = nouveau;
+    $('#p-attente').innerHTML = '<b>'+etat.attente.length+'</b> '+T('enAttente');
     const nbHaut = etat.remboursements.filter(r=>r.risque==='haut').length;
-    $('#p-remb').innerHTML = '<b>'+etat.remboursements.length+'</b> remboursements' + (nbHaut ? ' <span style="color:var(--alert)">('+nbHaut+' à risque élevé)</span>' : '');
-    $('#p-tache').innerHTML = '<b>'+etat.aFaire.length+'</b> à faire';
-    $('#p-cout').innerHTML = '<b>'+etat.coutMois.toFixed(2)+' $ US</b> ce mois-ci';
+    $('#p-remb').innerHTML = '<b>'+etat.remboursements.length+'</b> '+T('remb') + (nbHaut ? ' <span style="color:var(--alert)">('+nbHaut+' '+T('aRisque')+')</span>' : '');
+    $('#p-tache').innerHTML = '<b>'+etat.aFaire.length+'</b> '+T('af');
+    const nbApp = (etat.approbations||[]).length;
+    $('#p-approb').innerHTML = etat.role==='admin' ? '<b>'+nbApp+'</b> '+T('approbs') : '';
+    $('#p-cout').innerHTML = '<b>'+etat.coutMois.toFixed(2)+' $ US</b> '+T('ceMois');
     const mode = $('#p-mode');
-    mode.innerHTML = etat.autoSend ? '<b>envoi automatique</b>' : '<b>mode brouillon</b>';
+    mode.innerHTML = etat.autoSend ? '<b>'+T('modeAuto')+'</b>' : '<b>'+T('modeBrouillon')+'</b>';
     mode.className = etat.autoSend ? 'mode-auto' : 'mode-brouillon';
+    const sel = $('#sel-marque');
+    sel.innerHTML = '<option value="">'+T('toutesMarques')+'</option>' + (etat.marques||[]).map(m=>`<option value="${esc(m)}"${m===marqueFiltre?' selected':''}>${esc(m)}</option>`).join('');
+    appliquerRole(etat.role);
+    appliquerTextesStatiques();
     rendre();
   }catch(e){
-    $('#contenu').innerHTML = '<div class="vide"><b>Pas de connexion.</b><br>'+e.message+'</div>';
+    $('#contenu').innerHTML = '<div class="vide"><b>'+T('pasConn')+'</b><br>'+esc(e.message)+'</div>';
   }
 }
 
+function estVA(){ return etat && etat.role === 'va'; }
+function appliquerRole(role){
+  const admin = role !== 'va';
+  document.querySelectorAll('#tabs button[data-tab="config"],#tabs button[data-tab="approbations"]')
+    .forEach(b => { b.style.display = admin ? '' : 'none'; });
+  $('#role-badge').textContent = admin ? '' : T('modeVA');
+  if(!admin && ['config','approbations'].includes(tabActif)){ tabActif='attente'; document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('actif', b.dataset.tab==='attente')); }
+}
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function rendre(){
   const m = $('#contenu');
   if(!etat) return;
+  const risqueLbl = r => r==='haut'?T('risqueEleve'):r==='bas'?T('risqueFaible'):T('risqueMoyen');
+  const convBloc = (x) => `<button class="voir-conv" onclick="toggleConversation(${x.ligne},'${esc(x.tid)}')" id="btn-conv-${x.ligne}">${T('voirConv')}</button>
+        <div class="conversation" id="conv-${x.ligne}" style="display:none"></div>`;
 
   if(tabActif==='attente'){
-    if(!etat.attente.length){ m.innerHTML='<div class="vide"><b>File vide.</b><br>Rien à répondre pour le moment.</div>'; return; }
+    const liste = filtreMarque(etat.attente);
+    if(!liste.length){ m.innerHTML='<div class="vide"><b>'+T('fileVide')+'</b><br>'+T('rienARepondre')+'</div>'; return; }
     m.innerHTML = `
       <div class="bulk-bar">
-        <button class="primaire" onclick="enregistrerToutesLesReponses()" id="btn-bulk">Enregistrer toutes les réponses écrites</button>
-        <span class="meta" style="margin:0">Écris tes réponses dans les cases, puis un seul clic les enregistre toutes.</span>
+        <button class="primaire" onclick="enregistrerToutesLesReponses()" id="btn-bulk">${T('bulkBtn')}</button>
+        <span class="meta" style="margin:0">${T('bulkHint')}</span>
       </div>` +
-      etat.attente.map(a => `
-      <div class="carte">
-        <div class="meta"><span class="marque-tag">${esc(a.marque)}</span>${esc(a.de)} · ${esc(a.date)}</div>
+      liste.map(a => `
+      <div class="carte${a.pourWillow?' pour-willow':''}">
+        <div class="meta"><span class="marque-tag">${esc(a.marque)}</span>${esc(a.de)} · ${esc(a.date)}${a.pourWillow?' <span class="tache-tag" style="background:#5A1418;color:#FF8A80">'+T('renvoye')+'</span>':''}</div>
         <h3>${esc(a.sujet)}</h3>
         <div class="resume">${esc(a.resume)}</div>
-        <button class="voir-conv" onclick="toggleConversation(${a.ligne},'${esc(a.tid)}')" id="btn-conv-${a.ligne}">Voir la conversation</button>
-        <div class="conversation" id="conv-${a.ligne}" style="display:none"></div>
+        ${convBloc(a)}
         <div class="suggestion-zone" id="sugg-${a.ligne}"></div>
-        <textarea id="rep-${a.ligne}" class="rep-bulk" data-ligne="${a.ligne}" data-tid="${esc(a.tid)}" data-sujet="${esc(a.sujet)}" placeholder="Ta réponse en une ligne, le VA écrit le courriel complet">${esc(brouillonsPerdus[a.tid] != null ? brouillonsPerdus[a.tid] : a.reponse)}</textarea>
-        <button class="voir-conv" onclick="suggererReponse(${a.ligne},'${esc(a.tid)}')" id="btn-sugg-${a.ligne}">Suggérer une réponse</button>
+        <textarea id="rep-${a.ligne}" class="rep-bulk" data-ligne="${a.ligne}" data-tid="${esc(a.tid)}" data-sujet="${esc(a.sujet)}" placeholder="${T('placeholderRep')}">${esc(brouillonsPerdus[a.tid] != null ? brouillonsPerdus[a.tid] : a.reponse)}</textarea>
+        <button class="voir-conv" onclick="suggererReponse(${a.ligne},'${esc(a.tid)}')" id="btn-sugg-${a.ligne}">${T('suggerer')}</button>
         <div class="ligne-actions">
-          <label class="case"><input type="checkbox" id="kb-${a.ligne}"> Garder dans la base (réponse réutilisable)</label>
-          <button class="primaire" onclick="envoyerReponse(${a.ligne},'${esc(a.tid)}')">Enregistrer la réponse</button>
-          <button class="sup" onclick="retirerLigne(${a.ligne},'${esc(a.tid)}')">Ne pas répondre</button>
+          <label class="case"><input type="checkbox" id="kb-${a.ligne}"> ${T('garderKB')}</label>
+          <button class="primaire" onclick="envoyerReponse(${a.ligne},'${esc(a.tid)}')">${T('enregistrer')}</button>
+          <button class="sup" onclick="retirerLigne(${a.ligne},'${esc(a.tid)}')">${T('nePasRep')}</button>
+          ${estVA() ? `<button class="sup" style="color:#FFC680" onclick="renvoyerWillow(${a.ligne},'${esc(a.tid)}')">${T('renvoyer')}</button>` : ''}
         </div>
       </div>`).join('');
   }
 
   if(tabActif==='remboursements'){
-    if(!etat.remboursements.length){ m.innerHTML='<div class="vide"><b>Aucun remboursement en attente.</b><br>Rien à trier pour le moment.</div>'; return; }
-    m.innerHTML = etat.remboursements.map(r => `
+    const liste = filtreMarque(etat.remboursements);
+    if(!liste.length){ m.innerHTML='<div class="vide"><b>'+T('aucunRemb')+'</b><br>'+T('rienATrier')+'</div>'; return; }
+    m.innerHTML = liste.map(r => `
       <div class="carte risque-${esc(r.risque)}">
         <div class="meta">
           <span class="marque-tag">${esc(r.marque)}</span>${esc(r.de)} · ${esc(r.date)}
-          <span class="risque-tag ${esc(r.risque)}">${r.risque==='haut'?'Risque élevé':r.risque==='bas'?'Risque faible':'Risque moyen'}</span>
+          <span class="risque-tag ${esc(r.risque)}">${risqueLbl(r.risque)}</span>
+          ${r.demande>0?`<span class="tache-tag" style="background:#5B3A12;color:#FFC680">${T('demandeEnCours')} · ${fmt(r.demande)} (${esc(r.demandePar)})</span>`:''}
         </div>
         <h3>${esc(r.sujet)}</h3>
         <div class="resume">${esc(r.resume)}</div>
-        <button class="voir-conv" onclick="toggleConversation(${r.ligne},'${esc(r.tid)}')" id="btn-conv-${r.ligne}">Voir la conversation</button>
-        <div class="conversation" id="conv-${r.ligne}" style="display:none"></div>
+        ${convBloc(r)}
         <div class="refund-zone" id="refund-${r.ligne}"></div>
         <div class="ligne-actions">
-          <span class="meta" style="margin:0">Statut : ${esc(r.statut)}</span>
-          <button class="primaire" onclick="ouvrirRemboursement(${r.ligne},'${esc(r.tid)}')" id="btn-refund-${r.ligne}">Rembourser</button>
-          <button class="sup" onclick="resoudreRemboursement(${r.ligne},'${esc(r.tid)}')">Marquer comme réglé</button>
+          <span class="meta" style="margin:0">${T('statut')} : ${esc(r.statut)}</span>
+          ${r.demande>0 && estVA() ? '' : `<button class="primaire" onclick="ouvrirRemboursement(${r.ligne},'${esc(r.tid)}')" id="btn-refund-${r.ligne}">${estVA()?T('demanderRemb'):T('rembourser')}</button>`}
+          <button class="sup" onclick="resoudreRemboursement(${r.ligne},'${esc(r.tid)}')">${T('regle')}</button>
+        </div>
+      </div>`).join('');
+  }
+
+  if(tabActif==='approbations'){
+    const liste = filtreMarque(etat.approbations||[]);
+    if(!liste.length){ m.innerHTML='<div class="vide"><b>'+T('aucuneApprob')+'</b></div>'; return; }
+    m.innerHTML = liste.map(r => `
+      <div class="carte risque-${esc(r.risque)}">
+        <div class="meta">
+          <span class="marque-tag">${esc(r.marque)}</span>${esc(r.de)} · ${esc(r.date)}
+          <span class="risque-tag ${esc(r.risque)}">${risqueLbl(r.risque)}</span>
+        </div>
+        <h3>${esc(r.sujet)}</h3>
+        <div class="resume">${esc(r.resume)}</div>
+        <div class="rp-confirm" style="margin:8px 0">${T('demandePar')} <b>${esc(r.par)}</b> : <b>${fmt(r.montant)}</b></div>
+        ${convBloc(r)}
+        <div class="refund-zone" id="refund-${r.ligne}"></div>
+        <div class="ligne-actions">
+          <button class="danger" onclick="ouvrirRemboursement(${r.ligne},'${esc(r.tid)}', ${r.montant})" id="btn-refund-${r.ligne}">${T('approuver')}</button>
+          <button class="sup" onclick="refuserDemande(${r.ligne},'${esc(r.tid)}')">${T('refuser')}</button>
         </div>
       </div>`).join('');
   }
 
   if(tabActif==='afaire'){
-    if(!etat.aFaire.length){ m.innerHTML='<div class="vide"><b>Rien à faire.</b><br>Aucune action manuelle en attente.</div>'; return; }
-    m.innerHTML = etat.aFaire.map(f => `
+    const liste = filtreMarque(etat.aFaire);
+    if(!liste.length){ m.innerHTML='<div class="vide"><b>'+T('rienAFaire')+'</b><br>'+T('aucuneAction')+'</div>'; return; }
+    m.innerHTML = liste.map(f => `
       <div class="carte carte-tache">
         <div class="meta">
           <span class="marque-tag">${esc(f.marque)}</span>${esc(f.de)} · ${esc(f.date)}
@@ -268,68 +416,85 @@ function rendre(){
         </div>
         <h3>${esc(f.sujet)}</h3>
         <div class="resume">${esc(f.resume)}</div>
-        <button class="voir-conv" onclick="toggleConversation(${f.ligne},'${esc(f.tid)}')" id="btn-conv-${f.ligne}">Voir la conversation</button>
-        <div class="conversation" id="conv-${f.ligne}" style="display:none"></div>
+        ${convBloc(f)}
         <div class="ligne-actions">
-          <span class="meta" style="margin:0">Statut réponse : ${esc(f.statut)}</span>
-          <button class="sup" onclick="resoudreTache(${f.ligne},'${esc(f.tid)}')">Marquer comme fait</button>
+          <span class="meta" style="margin:0">${T('statutRep')} : ${esc(f.statut)}</span>
+          <button class="sup" onclick="resoudreTache(${f.ligne},'${esc(f.tid)}')">${T('fait')}</button>
         </div>
       </div>`).join('');
   }
 
+  if(tabActif==='notes'){
+    const notes = etat.notes || [];
+    m.innerHTML = `
+      <div class="form-ajout">
+        <textarea id="note-texte" placeholder="${T('placeholderNote')}" style="flex:1;min-width:220px;min-height:60px"></textarea>
+        <button class="primaire" onclick="ajouterNote()">${T('ajouterNote')}</button>
+      </div>` +
+      (notes.length ? notes.map(n => `
+      <div class="carte" style="border-left-color:var(--line)">
+        <div class="meta">${esc(n.qui)} · ${esc(n.date)} <button class="sup" onclick="supprimerNote(${n.ligne})">${T('retirer')}</button></div>
+        <div style="white-space:pre-wrap">${esc(n.texte)}</div>
+      </div>`).join('') : '<div class="vide"><b>'+T('notesVide')+'</b></div>');
+  }
+
   if(tabActif==='kb'){
+    if(!etat.kb) return;
     m.innerHTML = `
       <div class="form-ajout">
         <select id="kb-marque">${etat.marques.map(x=>`<option>${esc(x)}</option>`).join('')}</select>
-        <input type="text" id="kb-q" placeholder="Question type">
-        <input type="text" id="kb-r" placeholder="Réponse approuvée">
-        <button class="primaire" onclick="ajouterKB()">Ajouter</button>
+        <input type="text" id="kb-q" placeholder="${T('question')}">
+        <input type="text" id="kb-r" placeholder="${T('reponse')}">
+        <button class="primaire" onclick="ajouterKB()">${T('ajouter')}</button>
       </div>
-      <table><tr><th>Marque</th><th>Question</th><th>Réponse</th><th></th></tr>
-      ${etat.kb.map(k=>`<tr><td class="mono">${esc(k.marque)}</td><td>${esc(k.q)}</td><td>${esc(k.r)}</td><td><button class="sup" onclick="supprimer('delKB',${k.ligne})">retirer</button></td></tr>`).join('')}
+      <table><tr><th>${T('marque')}</th><th>${T('question')}</th><th>${T('reponse')}</th><th></th></tr>
+      ${filtreMarque(etat.kb).map(k=>`<tr><td class="mono">${esc(k.marque)}</td><td>${esc(k.q)}</td><td>${esc(k.r)}</td><td><button class="sup" onclick="supprimer('delKB',${k.ligne})">${T('retirer')}</button></td></tr>`).join('')}
       </table>`;
   }
 
   if(tabActif==='regles'){
+    if(!etat.regles) return;
     m.innerHTML = `
       <div class="form-ajout">
         <select id="rg-marque"><option>GLOBAL</option>${etat.marques.map(x=>`<option>${esc(x)}</option>`).join('')}</select>
-        <input type="text" id="rg-texte" placeholder="Nouvelle règle en français normal">
-        <button class="primaire" onclick="ajouterRegle()">Ajouter</button>
+        <input type="text" id="rg-texte" placeholder="${T('nouvelleRegle')}">
+        <button class="primaire" onclick="ajouterRegle()">${T('ajouter')}</button>
       </div>
-      <table><tr><th>Portée</th><th>Règle</th><th></th></tr>
-      ${etat.regles.map(r=>`<tr><td class="mono">${esc(r.marque)}</td><td>${esc(r.regle)}</td><td><button class="sup" onclick="supprimer('delRegle',${r.ligne})">retirer</button></td></tr>`).join('')}
+      <table><tr><th>${T('portee')}</th><th>${T('regleCol')}</th><th></th></tr>
+      ${etat.regles.filter(r=>!marqueFiltre || r.marque===marqueFiltre || r.marque==='GLOBAL').map(r=>`<tr><td class="mono">${esc(r.marque)}</td><td>${esc(r.regle)}</td><td><button class="sup" onclick="supprimer('delRegle',${r.ligne})">${T('retirer')}</button></td></tr>`).join('')}
       </table>`;
   }
 
   if(tabActif==='config'){
+    if(!etat.config) return;
     m.innerHTML = etat.config.map(c=>`
       <div class="carte" style="border-left-color:var(--line)">
         <h3>${esc(c.param)}</h3>
         <div class="ligne-actions">
           <input type="text" id="cfg-${esc(c.param)}" value="${esc(c.valeur)}" style="flex:1;min-width:160px">
-          <button onclick="sauverConfig('${esc(c.param)}')">Enregistrer</button>
+          <button onclick="sauverConfig('${esc(c.param)}')">${T('enregistrerCfg')}</button>
         </div>
       </div>`).join('') +
-      '<p style="color:var(--muted);font-size:13px">HEURES_RUN reprogramme les runs automatiquement. AUTO_SEND_DATE au format 2026-07-30.</p>';
+      '<p style="color:var(--muted);font-size:13px">'+T('cfgHint')+'</p>';
   }
 
   if(tabActif==='log'){
-    if(!etat.log.length){ m.innerHTML='<div class="vide"><b>Journal vide.</b></div>'; return; }
-    m.innerHTML = `<table><tr><th>Date</th><th>Marque</th><th>Catégorie</th><th>Action</th><th>Coût</th></tr>
-      ${etat.log.map(l=>`<tr><td class="mono">${esc(l.date)}</td><td>${esc(l.marque)}</td><td>${esc(l.cat)}</td><td>${esc(l.action)}</td><td class="mono">${l.cout?l.cout.toFixed(4)+' $':''}</td></tr>`).join('')}
+    if(!etat.log) return;
+    if(!etat.log.length){ m.innerHTML='<div class="vide"><b>'+T('journalVide')+'</b></div>'; return; }
+    m.innerHTML = `<table><tr><th>${T('date')}</th><th>${T('marque')}</th><th>${T('categorie')}</th><th>${T('action')}</th><th>${T('cout')}</th></tr>
+      ${filtreMarque(etat.log).map(l=>`<tr><td class="mono">${esc(l.date)}</td><td>${esc(l.marque)}</td><td>${esc(l.cat)}</td><td>${esc(l.action)}</td><td class="mono">${l.cout?l.cout.toFixed(4)+' $':''}</td></tr>`).join('')}
       </table>`;
   }
 }
 
 async function envoyerReponse(ligne, tid){
   const rep = $('#rep-'+ligne).value.trim();
-  if(!rep){ toast('Écris une réponse d\u2019abord'); return; }
+  if(!rep){ toast(T('ecrisDabord')); return; }
   brouillonsPerdus[tid] = rep; // conserve le texte si la ligne est refusee et que la page se rafraichit
   try{
     await api({action:'answer', ligne:ligne, tid:tid, reponse:rep, kb: $('#kb-'+ligne).checked});
     delete brouillonsPerdus[tid];
-    toast('Réponse enregistrée, traitée au prochain run');
+    toast(T('repEnregistree'));
     charger();
   }catch(e){ gererErreur(e); }
 }
@@ -343,8 +508,8 @@ async function enregistrerToutesLesReponses(){
       items.push({ ligne, tid: z.dataset.tid, sujet: z.dataset.sujet, reponse: texte, kb: document.getElementById('kb-'+ligne)?.checked || false });
     }
   });
-  if(!items.length){ toast('Aucune réponse écrite à enregistrer'); return; }
-  const btn = $('#btn-bulk'); btn.disabled = true; btn.textContent = 'Enregistrement…';
+  if(!items.length){ toast(T('aucuneRep')); return; }
+  const btn = $('#btn-bulk'); btn.disabled = true; btn.textContent = T('bulkSaving');
   // Avant d'envoyer : on garde une copie de TOUT ce qui est tape, par tid.
   // Si une ligne est refusee (elle a bouge), son texte sera remis en place apres le rafraichissement.
   items.forEach(it => { brouillonsPerdus[it.tid] = it.reponse; });
@@ -353,19 +518,27 @@ async function enregistrerToutesLesReponses(){
     (rep.reussis || []).forEach(t => { delete brouillonsPerdus[t]; }); // on n'oublie que ce qui a vraiment ete ecrit
     const nbErr = rep.erreurs?.length || 0;
     if(nbErr){
-      toast(rep.traites+' enregistrée(s), '+nbErr+' à refaire (la liste avait bougé, tes textes sont conservés)');
+      toast(rep.traites+' '+T('nbEnreg')+', '+nbErr+' '+T('aRefaire'));
     } else {
-      toast(rep.traites+' réponse(s) enregistrée(s)');
+      toast(rep.traites+' '+T('nbEnreg'));
     }
     await charger();
   }catch(e){ gererErreur(e); }
-  btn.disabled = false; btn.textContent = 'Enregistrer toutes les réponses écrites';
+  btn.disabled = false; btn.textContent = T('bulkBtn');
+}
+async function renvoyerWillow(ligne, tid){
+  const note = prompt(T('renvoyerPourquoi')) || '';
+  try{
+    await api({action:'flagWillow', ligne:ligne, tid:tid, note:note});
+    toast(T('renvoye'));
+    charger();
+  }catch(e){ gererErreur(e); }
 }
 async function retirerLigne(ligne, tid){
-  if(!confirm('Ce courriel ne recevra aucune réponse. Continuer?')) return;
+  if(!confirm(T('confirmNePas'))) return;
   try{
     await api({action:'discard', ligne:ligne, tid:tid});
-    toast('Retiré, aucune réponse envoyée');
+    toast(T('retire'));
     charger();
   }catch(e){ gererErreur(e); }
 }
@@ -376,28 +549,28 @@ const brouillonsPerdus = {}; // texte tape mais non enregistre, par tid, restaur
 async function suggererReponse(ligne, tid){
   const zone = document.getElementById('sugg-'+ligne);
   const btn = document.getElementById('btn-sugg-'+ligne);
-  btn.disabled = true; btn.textContent = 'Réflexion en cours…';
+  btn.disabled = true; btn.textContent = T('reflexion');
   try{
     const rep = await api({action:'suggestAnswer', ligne:ligne, tid:tid});
     suggestions[ligne] = String(rep.suggestion || '');
     zone.innerHTML = `
       <div class="suggestion-box">
-        <div class="sugg-label">Piste suggérée</div>
+        <div class="sugg-label">${T('piste')}</div>
         ${esc(rep.suggestion)}
         <div class="sugg-actions">
-          <button class="primaire" onclick="appliquerSuggestion(${ligne})">Utiliser cette réponse</button>
+          <button class="primaire" onclick="appliquerSuggestion(${ligne})">${T('utiliser')}</button>
         </div>
       </div>`;
   }catch(e){
     zone.innerHTML = '<div class="suggestion-box">Erreur : '+esc(e.message)+'</div>';
   }
-  btn.disabled = false; btn.textContent = 'Suggérer une réponse';
+  btn.disabled = false; btn.textContent = T('suggerer');
 }
 function appliquerSuggestion(ligne){
   const texte = suggestions[ligne];
   if(texte == null) return;
   document.getElementById('rep-'+ligne).value = texte;
-  toast('Suggestion insérée, tu peux la modifier avant d\u2019enregistrer');
+  toast(T('suggInseree'));
 }
 
 async function toggleConversation(ligne, tid){
@@ -405,13 +578,13 @@ async function toggleConversation(ligne, tid){
   const btn = document.getElementById('btn-conv-'+ligne);
   if(box.style.display !== 'none'){
     box.style.display = 'none';
-    btn.textContent = 'Voir la conversation';
+    btn.textContent = T('voirConv');
     return;
   }
   box.style.display = 'flex';
-  btn.textContent = 'Masquer la conversation';
+  btn.textContent = T('masquerConv');
   if(cacheConv[ligne]){ box.innerHTML = cacheConv[ligne]; return; }
-  box.innerHTML = '<div class="conv-chargement">Chargement de la conversation…</div>';
+  box.innerHTML = '<div class="conv-chargement">'+T('convCharg')+'</div>';
   try{
     const rep = await api({action:'getThread', ligne:ligne, tid:tid});
     const html = rep.messages.map(m => `
@@ -428,58 +601,80 @@ async function toggleConversation(ligne, tid){
 const apercus = {}; // detail de commande par ligne, pour ne rien re-inliner dans le HTML
 function fmt(n, dev){ return (Number(n)||0).toFixed(2)+' '+(dev||''); }
 
-async function ouvrirRemboursement(ligne, tid){
+async function ouvrirRemboursement(ligne, tid, montantPropose){
   const zone = document.getElementById('refund-'+ligne);
   const btn = document.getElementById('btn-refund-'+ligne);
-  if(zone.innerHTML){ zone.innerHTML=''; btn.textContent='Rembourser'; return; }
-  btn.disabled=true; btn.textContent='Chargement de la commande…';
+  const va = estVA();
+  if(zone.innerHTML){ zone.innerHTML=''; btn.textContent = va ? T('demanderRemb') : (montantPropose ? T('approuver') : T('rembourser')); return; }
+  btn.disabled=true; btn.textContent=T('chargCommande');
   try{
     const rep = await api({action:'getRefundPreview', ligne:ligne, tid:tid});
     const c = rep.commande; apercus[ligne] = c;
+    const prefill = (montantPropose && montantPropose <= c.remboursable + 0.005) ? montantPropose : c.remboursable;
     const lignesHtml = c.lignes.map(l=>`<tr><td>${esc(l.titre)}${l.variante?' <span class="meta" style="margin:0">'+esc(l.variante)+'</span>':''}</td><td class="num">${l.qte} × ${fmt(l.prixUnit)}</td><td class="num">${fmt(l.total)}</td></tr>`).join('');
+    const peutExecuter = !va && c.tokenRemboursement;
     zone.innerHTML = `
       <div class="refund-panel">
         <div class="rp-head">
-          <span>Commande <b>${esc(c.numero)}</b> · ${esc(c.date)}</span>
-          <span><b>${esc(c.client.trim()||'client')}</b> · ${esc(c.email)}</span>
-          <span>Paiement : <b>${esc(c.statutPaiement)}</b> · Expédition : <b>${esc(c.statutExpedition)}</b></span>
+          <span>${T('commande')} <b>${esc(c.numero)}</b> · ${esc(c.date)}</span>
+          <span><b>${esc(c.client.trim()||T('client'))}</b> · ${esc(c.email)}</span>
+          <span>${T('paiement')} : <b>${esc(c.statutPaiement)}</b> · ${T('expedition')} : <b>${esc(c.statutExpedition)}</b></span>
         </div>
         <table>
           ${lignesHtml}
-          <tr><td colspan="2">Sous-total</td><td class="num">${fmt(c.sousTotal)}</td></tr>
-          ${c.rabais?`<tr><td colspan="2">Rabais</td><td class="num">-${fmt(c.rabais)}</td></tr>`:''}
-          <tr><td colspan="2">Livraison</td><td class="num">${fmt(c.livraison)}</td></tr>
-          <tr><td colspan="2">Taxes</td><td class="num">${fmt(c.taxes)}</td></tr>
-          <tr class="tot"><td colspan="2">Total payé</td><td class="num">${fmt(c.total, c.devise)}</td></tr>
-          ${c.dejaRembourse?`<tr class="rembours"><td colspan="2">Déjà remboursé</td><td class="num">-${fmt(c.dejaRembourse)}</td></tr>`:''}
-          <tr class="dispo"><td colspan="2">Remboursable</td><td class="num">${fmt(c.remboursable, c.devise)}</td></tr>
+          <tr><td colspan="2">${T('sousTotal')}</td><td class="num">${fmt(c.sousTotal)}</td></tr>
+          ${c.rabais?`<tr><td colspan="2">${T('rabais')}</td><td class="num">-${fmt(c.rabais)}</td></tr>`:''}
+          <tr><td colspan="2">${T('livraison')}</td><td class="num">${fmt(c.livraison)}</td></tr>
+          <tr><td colspan="2">${T('taxes')}</td><td class="num">${fmt(c.taxes)}</td></tr>
+          <tr class="tot"><td colspan="2">${T('totalPaye')}</td><td class="num">${fmt(c.total, c.devise)}</td></tr>
+          ${c.dejaRembourse?`<tr class="rembours"><td colspan="2">${T('dejaRemb')}</td><td class="num">-${fmt(c.dejaRembourse)}</td></tr>`:''}
+          <tr class="dispo"><td colspan="2">${T('remboursable')}</td><td class="num">${fmt(c.remboursable, c.devise)}</td></tr>
         </table>
-        ${c.tokenRemboursement ? `
+        ${(va || c.tokenRemboursement) ? `
         <div class="rp-montant">
-          <label for="mt-${ligne}">Montant à rembourser</label>
-          <input type="text" id="mt-${ligne}" value="${c.remboursable.toFixed(2)}"> <span class="meta" style="margin:0">${esc(c.devise)}</span>
-          <button class="danger" onclick="demanderConfirmation(${ligne},'${esc(tid)}')">Rembourser ce montant</button>
+          <label for="mt-${ligne}">${T('montantARemb')}</label>
+          <input type="text" id="mt-${ligne}" value="${Number(prefill).toFixed(2)}"> <span class="meta" style="margin:0">${esc(c.devise)}</span>
+          ${va
+            ? `<button class="primaire" onclick="demanderRemboursement(${ligne},'${esc(tid)}')">${T('demanderCeMontant')}</button>`
+            : `<button class="danger" onclick="demanderConfirmation(${ligne},'${esc(tid)}')">${T('rembCeMontant')}</button>`}
         </div>
         <div id="rp-confirm-${ligne}"></div>` :
-        `<div class="meta" style="margin:0;color:var(--alert)">Token de remboursement (write_orders) non configuré pour cette marque : SHOPIFY_REFUND_TOKEN_&lt;MARQUE&gt;</div>`}
+        `<div class="meta" style="margin:0;color:var(--alert)">${esc(T('tokenManquant'))}</div>`}
       </div>`;
-    btn.textContent='Fermer';
-  }catch(e){ gererErreur(e); btn.textContent='Rembourser'; }
+    btn.textContent=T('fermer');
+  }catch(e){ gererErreur(e); btn.textContent = va ? T('demanderRemb') : T('rembourser'); }
   btn.disabled=false;
 }
 
-function demanderConfirmation(ligne, tid){
-  const c = apercus[ligne]; if(!c) return;
+function lireMontant(ligne){
+  const c = apercus[ligne]; if(!c) return null;
   const val = Number(String(document.getElementById('mt-'+ligne).value).replace(',','.'));
-  if(!(val>0)){ toast('Montant invalide'); return; }
-  if(val > c.remboursable + 0.005){ toast('Maximum remboursable : '+fmt(c.remboursable,c.devise)); return; }
+  if(!(val>0)){ toast(T('montantInvalide')); return null; }
+  if(val > c.remboursable + 0.005){ toast(T('maxRemb')+' '+fmt(c.remboursable,c.devise)); return null; }
+  return val;
+}
+
+// VA : demande, rien n'est execute
+async function demanderRemboursement(ligne, tid){
+  const val = lireMontant(ligne); if(val==null) return;
+  const note = prompt(T('demandePourquoi')) || '';
+  try{
+    const rep = await api({action:'requestRefund', ligne:ligne, tid:tid, montant:val, note:note});
+    toast(T('demandeEnvoyee')+' : '+fmt(rep.montant, rep.devise)+' · '+rep.numero);
+    charger();
+  }catch(e){ gererErreur(e); }
+}
+
+// Willow : confirmation puis execution
+function demanderConfirmation(ligne, tid){
+  const c = apercus[ligne]; const val = lireMontant(ligne); if(val==null) return;
   const complet = Math.abs(val - c.remboursable) < 0.01;
   document.getElementById('rp-confirm-'+ligne).innerHTML = `
     <div class="rp-confirm">
-      Tu vas rembourser <b>${fmt(val, c.devise)}</b> (${complet?'remboursement complet':'remboursement partiel'}) sur la commande <b>${esc(c.numero)}</b> à <b>${esc(c.email)}</b>. Cette action est irréversible.
+      ${T('tuVasRemb')} <b>${fmt(val, c.devise)}</b> (${complet?T('rembComplet'):T('rembPartiel')}) ${T('surCommande')} <b>${esc(c.numero)}</b> ${T('a')} <b>${esc(c.email)}</b>. ${T('irreversible')}
       <div class="btns">
-        <button class="danger" onclick="confirmerRemboursement(${ligne},'${esc(tid)}',${val})">Oui, rembourser ${fmt(val, c.devise)}</button>
-        <button onclick="document.getElementById('rp-confirm-${ligne}').innerHTML=''">Annuler</button>
+        <button class="danger" onclick="confirmerRemboursement(${ligne},'${esc(tid)}',${val})">${T('ouiRemb')} ${fmt(val, c.devise)}</button>
+        <button onclick="document.getElementById('rp-confirm-${ligne}').innerHTML=''">${T('annuler')}</button>
       </div>
     </div>`;
 }
@@ -489,7 +684,7 @@ async function confirmerRemboursement(ligne, tid, montant){
   box.querySelectorAll('button').forEach(b=>b.disabled=true);
   try{
     const rep = await api({action:'executeRefund', ligne:ligne, tid:tid, montant:montant, confirmation:'OUI'});
-    toast('Remboursé '+fmt(rep.montant, rep.devise)+' sur '+rep.numero+' · courriel : '+rep.courriel);
+    toast(T('rembFait')+' '+fmt(rep.montant, rep.devise)+' · '+rep.numero+' · '+T('courriel')+' : '+rep.courriel);
     charger();
   }catch(e){ gererErreur(e); box.querySelectorAll('button').forEach(b=>b.disabled=false); }
 }
@@ -497,63 +692,79 @@ async function confirmerRemboursement(ligne, tid, montant){
 async function resoudreRemboursement(ligne, tid){
   try{
     await api({action:'resolveRefund', ligne:ligne, tid:tid});
-    toast('Marqué comme réglé');
+    toast(T('marqueRegle'));
     charger();
   }catch(e){ gererErreur(e); }
+}
+async function ajouterNote(){
+  const t = $('#note-texte').value.trim();
+  if(!t){ toast(T('noteVide')); return; }
+  try{ await api({action:'addNote', texte:t}); toast(T('noteAjoutee')); charger(); }catch(e){ gererErreur(e); }
+}
+async function supprimerNote(ligne){
+  if(!confirm(T('confirmRetirer'))) return;
+  try{ await api({action:'delNote', ligne:ligne}); toast(T('retire')); charger(); }catch(e){ gererErreur(e); }
+}
+async function refuserDemande(ligne, tid){
+  const note = prompt(T('refuserPourquoi')) || '';
+  try{ await api({action:'declineRefund', ligne:ligne, tid:tid, note:note}); toast(T('refuse')); charger(); }catch(e){ gererErreur(e); }
 }
 async function resoudreTache(ligne, tid){
   try{
     await api({action:'resolveTask', ligne:ligne, tid:tid});
-    toast('Marqué comme fait');
+    toast(T('marqueFait'));
     charger();
   }catch(e){ gererErreur(e); }
 }
 async function ajouterKB(){
   const q=$('#kb-q').value.trim(), r=$('#kb-r').value.trim();
-  if(!q||!r){ toast('Question et réponse requises'); return; }
-  try{ await api({action:'addKB', marque:$('#kb-marque').value, q:q, r:r}); toast('Ajouté à la base'); charger(); }
-  catch(e){ toast('Erreur : '+e.message); }
+  if(!q||!r){ toast(T('qrRequis')); return; }
+  try{ await api({action:'addKB', marque:$('#kb-marque').value, q:q, r:r}); toast(T('ajouteBase')); charger(); }
+  catch(e){ gererErreur(e); }
 }
 async function ajouterRegle(){
   const t=$('#rg-texte').value.trim();
-  if(!t){ toast('Écris la règle'); return; }
-  try{ await api({action:'addRegle', marque:$('#rg-marque').value, regle:t}); toast('Règle ajoutée'); charger(); }
-  catch(e){ toast('Erreur : '+e.message); }
+  if(!t){ toast(T('ecrisRegle')); return; }
+  try{ await api({action:'addRegle', marque:$('#rg-marque').value, regle:t}); toast(T('regleAjoutee')); charger(); }
+  catch(e){ gererErreur(e); }
 }
 async function supprimer(action, ligne){
-  if(!confirm('Retirer cette ligne?')) return;
-  try{ await api({action:action, ligne:ligne}); toast('Retiré'); charger(); }
-  catch(e){ toast('Erreur : '+e.message); }
+  if(!confirm(T('confirmRetirer'))) return;
+  try{ await api({action:action, ligne:ligne}); toast(T('retire')); charger(); }
+  catch(e){ gererErreur(e); }
 }
 async function sauverConfig(param){
-  try{ await api({action:'setConfig', param:param, valeur:$('#cfg-'+param).value.trim()}); toast(param+' enregistré'); charger(); }
-  catch(e){ toast('Erreur : '+e.message); }
+  try{ await api({action:'setConfig', param:param, valeur:$('#cfg-'+param).value.trim()}); toast(param+' '+T('enregistre')); charger(); }
+  catch(e){ gererErreur(e); }
 }
 
 $('#btn-run').addEventListener('click', async ()=>{
-  const b=$('#btn-run'); b.disabled=true; b.textContent='Run en cours…';
-  try{ await api({action:'runNow'}); toast('Run terminé'); charger(); }
-  catch(e){ toast('Erreur : '+e.message); }
-  b.disabled=false; b.textContent='Lancer un run';
+  const b=$('#btn-run'); b.disabled=true; b.textContent=T('runEnCours');
+  try{ await api({action:'runNow'}); toast(T('runFini')); charger(); }
+  catch(e){ gererErreur(e); }
+  b.disabled=false; b.textContent=T('lancerRun');
 });
 $('#btn-refresh').addEventListener('click', charger);
 $('#btn-archive').addEventListener('click', async ()=>{
-  const b=$('#btn-archive'); b.disabled=true; b.textContent='Archivage…';
-  try{ await api({action:'archiverMaintenant'}); toast('Historique archivé'); charger(); }
-  catch(e){ toast('Erreur : '+e.message); }
-  b.disabled=false; b.textContent='Archiver l\u2019historique';
+  const b=$('#btn-archive'); b.disabled=true; b.textContent=T('archivage');
+  try{ await api({action:'archiverMaintenant'}); toast(T('archive')); charger(); }
+  catch(e){ gererErreur(e); }
+  b.disabled=false; b.textContent=T('archiver');
 });
 $('#btn-cfg-conn').addEventListener('click', ()=>{
   const p=$('#panneau-conn'); p.style.display = p.style.display==='none'?'block':'none';
-  $('#in-url').value=conn().url; $('#in-token').value=conn().token;
+  $('#in-url').value=conn().url; $('#in-token').value=conn().token; $('#in-nom').value=conn().nom;
 });
 $('#tabs').addEventListener('click', e=>{
-  if(e.target.dataset.tab){
-    tabActif=e.target.dataset.tab;
-    document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('actif', b===e.target));
-    rendre();
+  const btn = e.target.closest('button[data-tab]');
+  if(btn){
+    tabActif=btn.dataset.tab;
+    document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('actif', b===btn));
+    if((TABS_LOURDS[tabActif] && etat && etat[TABS_LOURDS[tabActif]] == null) || tabActif==='notes') charger(); else rendre();
   }
 });
+document.documentElement.lang = langue; document.documentElement.dir = (langue==='ur')?'rtl':'ltr';
+appliquerTextesStatiques();
 charger();
 </script>
 </body>
